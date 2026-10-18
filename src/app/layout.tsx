@@ -18,7 +18,9 @@ export const metadata: Metadata = {
     icon: [{ url: `${base}/icons/icon.svg`, type: 'image/svg+xml' }, { url: `${base}/icons/icon-192.png`, sizes: '192x192' }],
     apple: [{ url: `${base}/icons/apple-touch-icon.png`, sizes: '180x180' }],
   },
-  other: { 'apple-mobile-web-app-capable': 'yes' },
+  // O site já é em português: sem isso o tradutor do Chrome "traduz" pt→pt e troca
+  // "Classificação" por frases sem sentido e "Fim" por "Filme"
+  other: { 'apple-mobile-web-app-capable': 'yes', google: 'notranslate' },
 };
 
 export const viewport: Viewport = {
@@ -31,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" translate="no" className="notranslate">
       <body>
         {/* Coluna central de no máximo 520px, como um app, também no computador */}
         <div className="relative mx-auto min-h-dvh w-full max-w-130 bg-screen min-[521px]:border-x min-[521px]:border-line">
