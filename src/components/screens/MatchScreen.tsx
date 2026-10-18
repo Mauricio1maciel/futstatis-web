@@ -317,7 +317,7 @@ function MatchScreen(params: RouteParams) {
           (waiting ? <TimelineSkeleton /> : <MatchStats statistics={history?.statistics ?? []} homeName={homeName} awayName={awayName} />)}
 
         {activeTab === 'escalacao' &&
-          (waiting || !match ? <LineupSkeleton /> : <MatchLineups match={match} lineups={history?.lineups ?? []} side={side} onSideChange={setSide} />)}
+          (waiting || !match ? <LineupSkeleton /> : <MatchLineups match={match} lineups={history?.lineups ?? []} events={history?.events ?? []} side={side} onSideChange={setSide} />)}
 
         <LazyPanel active={activeTab === 'confronto'}>
           {match && <HeadToHead homeId={match.api_home_team_id} awayId={match.api_away_team_id} homeName={homeName} awayName={awayName} />}
