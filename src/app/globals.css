@@ -1,0 +1,117 @@
+@import 'tailwindcss';
+
+/* Tema escuro do app (as mesmas cores do React Native) */
+@theme {
+  --color-screen: #0b1120;
+  --color-deep: #060a11;
+  --color-card: #111827;
+  --color-card-2: #1e293b;
+  --color-card-3: #0f172a;
+  --color-line: #1f2937;
+  --color-line-2: #334155;
+  --color-ink: #f8fafc;
+  --color-ink-2: #cbd5e1;
+  --color-muted: #94a3b8;
+  --color-faint: #64748b;
+  --color-accent: #3b82f6;
+  --color-live: #ef4444;
+  --color-gold: #eab308;
+  --color-gold-2: #facc15;
+  --color-win: #16a34a;
+  --color-draw: #64748b;
+  --color-loss: #ef4444;
+  --color-away: #f97316;
+
+  /* Coluna "Forma" da classificação só a partir de 360px */
+  --breakpoint-xs: 22.5rem;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --animate-blink: blink 1.2s ease-in-out infinite;
+  --animate-sheet-in: sheet-in 0.22s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-refresh: refresh-slide 1s ease-in-out infinite;
+
+  @keyframes blink {
+    50% {
+      opacity: 0.2;
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes refresh-slide {
+    from {
+      left: -33%;
+    }
+    to {
+      left: 100%;
+    }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-deep);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--color-deep);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+  }
+
+  /* Foco visível só para teclado */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  img {
+    max-width: none;
+  }
+}
+
+@layer utilities {
+  /* Rolagem horizontal sem barra (abas, chaveamento) */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

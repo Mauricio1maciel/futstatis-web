@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#17233d"/><stop offset="1" stop-color="#0b1120"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(46 46) scale(17.5)">
+  <rect x="2" y="7" width="20" height="15" rx="2.5" fill="none" stroke="#facc15" stroke-width="1.6"/>
+  <polyline points="17 2 12 7 7 2" fill="none" stroke="#facc15" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <clipPath id="ball"><circle cx="12" cy="14.5" r="4.9"/></clipPath>
+  <circle cx="12" cy="14.5" r="4.9" fill="#f8fafc"/>
+  <g clip-path="url(#ball)" fill="#0b1120" stroke="#0b1120" stroke-width="0.45" stroke-linejoin="round">
+    <polygon points="12.000,12.750 13.664,13.959 13.029,15.916 10.971,15.916 10.336,13.959"/>
+    <polygon points="12.000,11.000 10.431,9.860 11.030,8.015 12.970,8.015 13.569,9.860"/><line x1="12.000" y1="12.750" x2="12.000" y2="10.900"/>
+    <polygon points="15.329,13.418 15.928,11.574 17.868,11.574 18.467,13.418 16.898,14.559"/><line x1="13.664" y1="13.959" x2="15.424" y2="13.388"/>
+    <polygon points="14.057,17.332 15.997,17.332 16.596,19.176 15.027,20.316 13.458,19.176"/><line x1="13.029" y1="15.916" x2="14.116" y2="17.412"/>
+    <polygon points="9.943,17.332 10.542,19.176 8.973,20.316 7.404,19.176 8.003,17.332"/><line x1="10.971" y1="15.916" x2="9.884" y2="17.412"/>
+    <polygon points="8.671,13.418 7.102,14.559 5.533,13.418 6.132,11.574 8.072,11.574"/><line x1="10.336" y1="13.959" x2="8.576" y2="13.388"/>
+  </g>
+  </g>
+</svg>
