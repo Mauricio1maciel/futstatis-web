@@ -37,7 +37,7 @@ function EventText({ event, align }: { event: MatchEvent; align: 'left' | 'right
       <p className="text-sm font-bold text-white">{event.player_name || label}</p>
       <p className="mt-0.5 text-xs text-muted">
         {event.player_name ? label : ''}
-        {event.details ? `${event.player_name ? ' • ' : ''}${event.details}` : ''}
+        {event.details ? `${event.player_name ? ' • ' : ''}${classifyEvent(event.event_type) === 'substitution' ? 'saiu ' : ''}${event.details}` : ''}
       </p>
     </div>
   );

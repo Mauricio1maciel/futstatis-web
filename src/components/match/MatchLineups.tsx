@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp, Shield, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Crest } from '@/components/ui/Crest';
@@ -14,11 +14,15 @@ type Side = 'home' | 'away';
 
 const playerId = (p: LineupPlayer) => p.espn_player_id;
 
+const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+// A ESPN às vezes grafa o nome de quem saiu diferente da escalação ("Joaquín"/"Joaquin")
+const sameName = (a: string, b: string) => normalize(a) === normalize(b);
+
 function rememberPlayer(p: LineupPlayer, teamName?: string) {
   setPreview('player', playerId(p), { name: p.player_name, team_name: teamName, headshot_url: p.headshot_url, jersey_number: p.jersey });
 }
 
-function PlayerNode({ player, teamName }: { player: PlacedPlayer; teamName?: string }) {
+function PlayerNode({ player, teamName, out = false }: { player: PlacedPlayer; teamName?: string; out?: boolean }) {
   const id = playerId(player);
   const body = (
     <>
@@ -27,6 +31,11 @@ function PlayerNode({ player, teamName }: { player: PlacedPlayer; teamName?: str
         <span className="absolute -left-1.5 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] font-bold text-black shadow">
           {player.jersey || '-'}
         </span>
+        {out && (
+          <span aria-label="Substituído" className="absolute -bottom-0.5 -left-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-live text-white">
+            <ArrowDown size={11} strokeWidth={3} />
+          </span>
+        )}
       </span>
       <span className="mt-1 max-w-full truncate text-[10px] font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
         {shortPlayerName(player.player_name)}
@@ -92,7 +101,12 @@ function Substitutions({ events, players, teamName }: { events: MatchEvent[]; pl
                 </span>
               </span>
               <span className="mt-1.5 max-w-full truncate text-[13px] font-semibold text-win">{event.player_name}</span>
-              {event.details && <span className="max-w-full truncate text-xs text-muted">{event.details}</span>}
+              {event.details && (
+                <span className="flex max-w-full items-center gap-0.5 text-xs text-muted">
+                  <ArrowDown size={11} strokeWidth={3} className="shrink-0 text-live" />
+                  <span className="truncate">{event.details}</span>
+                </span>
+              )}
             </>
           );
           const className = 'flex w-28 shrink-0 flex-col items-center px-2 text-center';
@@ -131,6 +145,7 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
   const substitutions = events.filter(
     e => classifyEvent(e.event_type) === 'substitution' && String(e.espn_team_id) === String(teamEspnId) && e.player_name,
   );
+  const subbedOut = substitutions.map(e => e.details || '').filter(Boolean);
 
   return (
     <div className="pb-6">
@@ -154,7 +169,12 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
       <div className="px-2.5">
         <Pitch formation={starters[0]?.formation}>
           {starters.length > 0 ? (
-            starters.map((player, index) => <PlayerNode key={`${playerId(player) ?? player.player_name}-${index}`} player={player} teamName={teamName} />)
+            starters.map((player, index) => <PlayerNode
+                key={`${playerId(player) ?? player.player_name}-${index}`}
+                player={player}
+                teamName={teamName}
+                out={subbedOut.some(name => sameName(name, player.player_name))}
+              />)
           ) : (
             <div className="absolute inset-x-0 top-[38%] flex flex-col items-center px-8 text-center">
               <Shield size={32} className="text-white/60" />
