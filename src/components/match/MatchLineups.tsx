@@ -82,7 +82,7 @@ function Substitutions({ events, players, teamName }: { events: MatchEvent[]; pl
   return (
     <section className="mx-4 mt-5 overflow-hidden rounded-xl bg-card">
       <h3 className="border-b border-line px-4 py-3 text-[15px] font-bold text-ink">Substituições</h3>
-      <ul className="no-scrollbar flex divide-x divide-line overflow-x-auto py-4">
+      <ul className="grid grid-cols-3 gap-y-5 py-4">
         {events.map((event, index) => {
           const player = players.find(p => p.player_name === event.player_name);
           const id = player ? playerId(player) : undefined;
@@ -109,7 +109,7 @@ function Substitutions({ events, players, teamName }: { events: MatchEvent[]; pl
               )}
             </>
           );
-          const className = 'flex w-28 shrink-0 flex-col items-center px-2 text-center';
+          const className = 'flex min-w-0 flex-col items-center px-2 text-center';
           return (
             <li key={`${event.minute}-${event.player_name}-${index}`}>
               {id && player ? (
