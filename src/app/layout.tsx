@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Suspense, type ReactNode } from 'react';
 import { NavigationTracker } from '@/components/layout/NavigationTracker';
 import { Notices } from '@/components/layout/Notices';
+import { PushBootstrap } from '@/components/layout/PushBootstrap';
 import './globals.css';
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
         <Notices />
+        <PushBootstrap />
         <Suspense fallback={null}>
           <NavigationTracker />
         </Suspense>

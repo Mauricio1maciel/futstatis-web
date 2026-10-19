@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, Share } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LEAGUES } from '@/config/leagues';
+import { NotificationsSetting } from '@/components/NotificationsSetting';
 import { TopBar } from '@/components/ui/TopBar';
 import { freezeScrollMemory, hasInAppHistory } from '@/lib/navigation';
 import { getFavoriteLeagues, saveFavoriteLeagues } from '@/lib/preferences';
@@ -64,6 +65,11 @@ export function FavoritesScreen() {
             </li>
           );
         })}
+
+        <li className="pt-4">
+          <h2 className="mb-2.5 px-1 text-xs font-bold uppercase tracking-wider text-faint">Notificações</h2>
+          <NotificationsSetting />
+        </li>
 
         {showInstallTip && (
           <li className="pt-4">

@@ -1,12 +1,12 @@
-// Seguir times, ligas e jogos para receber avisos (push). Pronto, mas desligado na web por
-// FEATURES.push (veja lib/features.ts). Regras do app (docs/API.md, "Notificações push"):
+// Seguir times, ligas e jogos para receber avisos (push). Funciona na web pelo
+// lib/webPush.ts (Web Push). Regras do app (docs/API.md, "Notificações push"):
 // - sempre com o token de convidado (é o device_id que identifica o aparelho);
 // - a estrela muda na hora e desfaz se a API falhar;
 // - 409 = aparelho ainda não registrado: registra e repete;
 // - tipos de aviso por inscrição: lista vazia não existe (vira "deixar de seguir").
 import { buildEndpoint, requestApi } from './api';
-import { FEATURES } from './features';
 import { showToast } from './toast';
+import { enableWebPush, isWebPushEnabled } from './webPush';
 
 export type FollowTarget =
   | { type: 'team'; teamId: string | number }
@@ -88,7 +88,7 @@ export function getKinds(state: Follows, target: FollowTarget): string[] | null 
 }
 
 export async function loadFollows() {
-  if (!FEATURES.push) return;
+  if (!isWebPushEnabled()) return;
   const result = await requestApi<Record<string, unknown>>('/push/subscriptions', {}, { guestOnly: true });
   if (result?.status === 200 && result.data) {
     follows = normalize(result.data);
@@ -96,11 +96,8 @@ export async function loadFollows() {
   }
 }
 
-// Registro do navegador para Web Push (service worker + PushManager + POST /push/register).
-// Ainda não existe: o backend só aceita platform android/ios
-export async function registerWebPush(): Promise<boolean> {
-  return false;
-}
+// Registro do navegador (Web Push). Pede permissão: só chamar depois de um toque do usuário
+export const registerWebPush = () => enableWebPush(true);
 
 async function send(method: 'POST' | 'DELETE', target: FollowTarget, extra: Record<string, unknown> = {}) {
   const request = () =>
@@ -123,7 +120,14 @@ function setFollowing(target: FollowTarget, following: boolean, id?: string) {
 }
 
 export async function toggleFollow(target: FollowTarget) {
-  if (!FEATURES.push) return;
+  // Primeiro toque numa estrela: ativa as notificações neste navegador
+  if (!isWebPushEnabled()) {
+    if (!(await registerWebPush())) {
+      showToast('Notificações não ativadas', 'Permita as notificações do site no navegador para seguir.');
+      return;
+    }
+    await loadFollows();
+  }
   const following = isFollowing(follows, target);
   const before = follows;
   setFollowing(target, !following); // muda na hora
@@ -142,7 +146,7 @@ export async function toggleFollow(target: FollowTarget) {
 
 /** Grava os tipos de aviso. Todos marcados = padrão; nenhum = deixar de seguir */
 export async function saveKinds(target: FollowTarget, kinds: string[]) {
-  if (!FEATURES.push) return false;
+  if (!isWebPushEnabled()) return false;
   if (kinds.length === 0) {
     if (isFollowing(follows, target)) await toggleFollow(target);
     return true;
@@ -162,4 +166,9 @@ export async function saveKinds(target: FollowTarget, kinds: string[]) {
     emit();
   }
   return true;
+}
+
+export function clearFollows() {
+  follows = EMPTY;
+  emit();
 }

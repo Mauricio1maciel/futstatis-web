@@ -166,15 +166,16 @@ Comportamentos importantes:
 - **Admin logado**: o botão de atualizar (⟳) do jogo, da classificação e das estatísticas manda
   `force_update=true`/`update=true`. Se o token de admin vencer, o site volta para convidado e avisa.
 
-## Notificações push (desligadas)
+## Notificações (Web Push)
 
-As estrelas de seguir e o sino de avisos estão prontos (`components/FollowStar.tsx`, `lib/follows.ts`),
-mas **escondidos**: `FEATURES.push` em `lib/features.ts` está `false`. Na web isso depende de:
+Os avisos de jogos chegam também no navegador (docs/API.md, "Push no navegador"):
 
-1. o backend aceitar o registro do navegador (hoje o `POST /push/register` só aceita `android`/`ios`);
-2. um service worker com Web Push (no iPhone só funciona com o site instalado na Tela de Início, iOS 16.4+).
-
-Depois disso, implemente `registerWebPush` em `lib/follows.ts` e troque a flag para `true`.
+- `public/sw.js`: service worker que mostra o aviso e, no toque, abre o jogo (ou a liga).
+- `src/lib/webPush.ts`: chave do servidor (`/push/web-key`), permissão, inscrição e `POST /push/register` com `platform: "web"`.
+- Ativar: **Minhas Ligas → Avisos de jogos**, ou tocar numa estrela (⭐) de jogo, time ou liga.
+- Ao abrir o site com os avisos ativados, a inscrição é renovada sozinha.
+- Se o servidor não oferece push no navegador (`/push/web-key` com erro), estrelas e opção ficam escondidas.
+- No iPhone só funciona com o site instalado na Tela de Início (iOS 16.4+); fora disso, Minhas Ligas mostra a dica.
 
 ## Ícones
 

@@ -3,7 +3,7 @@
 import { Bell, BellRing, Star } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { FEATURES } from '@/lib/features';
+import { usePushSupport } from '@/hooks/usePushSupport';
 import {
   getFollows,
   getKinds,
@@ -31,9 +31,9 @@ function useFollows() {
 
 type Props = { target: FollowTarget; size?: number; className?: string; name?: string };
 
-// Estrela de seguir + sino dos tipos de aviso. Escondidos enquanto a web não tem push (FEATURES.push)
+// Estrela de seguir + sino dos tipos de aviso. Só aparecem se o navegador e o servidor têm push
 export function FollowStar(props: Props) {
-  if (!FEATURES.push) return null;
+  if (usePushSupport() !== 'ok') return null;
   return <FollowControls {...props} />;
 }
 
