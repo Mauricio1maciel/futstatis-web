@@ -179,9 +179,4 @@ Os avisos de jogos chegam também no navegador (docs/API.md, "Push no navegador"
 
 ## Ícones
 
-Os PNGs de `public/icons/` são gerados por `scripts/generate-icons.mjs` (desenho em SVG + Chrome headless):
-
-```bash
-npm i -D playwright-core
-CHROME_PATH=/usr/bin/google-chrome node scripts/generate-icons.mjs
-```
+Os ícones de `public/icons/` vêm do ícone do app (`AppFutebolApp/assets/images/icon.png`), redimensionado para 32, 180, 192 e 512 px.

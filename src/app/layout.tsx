@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: 'FutStatis', statusBarStyle: 'black-translucent' },
   formatDetection: { telephone: false },
   icons: {
-    icon: [{ url: `${base}/icons/icon.svg`, type: 'image/svg+xml' }, { url: `${base}/icons/icon-192.png`, sizes: '192x192' }],
+    icon: [{ url: `${base}/icons/favicon-32.png`, sizes: '32x32' }, { url: `${base}/icons/icon-192.png`, sizes: '192x192' }],
     apple: [{ url: `${base}/icons/apple-touch-icon.png`, sizes: '180x180' }],
   },
   // O site já é em português: sem isso o tradutor do Chrome "traduz" pt→pt e troca
