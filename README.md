@@ -1,6 +1,6 @@
-# FutStatis Web
+# FutStats Web
 
-Versão web do FutStatis: as mesmas telas do app (React Native), com o mesmo tema escuro, feita
+Versão web do FutStats: as mesmas telas do app (React Native), com o mesmo tema escuro, feita
 para o Safari do iPhone e também para o computador (coluna central de até 520 px).
 
 - **Next.js 15 (App Router) + TypeScript + Tailwind CSS 4**, gerando um **site estático** (`out/`).
@@ -100,7 +100,7 @@ O workflow `.github/workflows/deploy-pages.yml` já faz tudo: roda os testes, ge
    ```bash
    git init -b main
    git add .
-   git commit -m "Versão web do FutStatis"
+   git commit -m "Versão web do FutStats"
    git remote add origin https://github.com/<seu-usuario>/futstatis-web.git
    git push -u origin main
    ```
@@ -137,7 +137,7 @@ carrega nada.
 2. Toque em **Compartilhar** (o quadrado com a seta para cima).
 3. Toque em **Adicionar à Tela de Início** e confirme.
 
-O FutStatis abre como app, em tela cheia, com o ícone próprio. A tela Minhas Ligas mostra essa dica
+O FutStats abre como app, em tela cheia, com o ícone próprio. A tela Minhas Ligas mostra essa dica
 para quem ainda está usando pelo navegador.
 
 ## Como o código está organizado

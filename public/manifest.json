@@ -1,6 +1,6 @@
 {
-  "name": "FutStatis",
-  "short_name": "FutStatis",
+  "name": "FutStats",
+  "short_name": "FutStats",
   "description": "Jogos ao vivo, resultados, classificação e estatísticas de futebol.",
   "lang": "pt-BR",
   "start_url": "./",

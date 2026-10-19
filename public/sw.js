@@ -13,7 +13,7 @@ self.addEventListener('push', event => {
     msg = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(msg.title || 'FutStatis', {
+    self.registration.showNotification(msg.title || 'FutStats', {
       body: msg.body,
       // jogo-<match_id>: o aviso novo de um jogo substitui o anterior
       tag: msg.tag,

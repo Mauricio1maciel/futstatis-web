@@ -8,12 +8,12 @@ import './globals.css';
 const base = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 export const metadata: Metadata = {
-  title: { default: 'FutStatis', template: '%s · FutStatis' },
+  title: { default: 'FutStats', template: '%s · FutStats' },
   description: 'Jogos ao vivo, resultados, classificação e estatísticas de futebol.',
-  applicationName: 'FutStatis',
+  applicationName: 'FutStats',
   manifest: `${base}/manifest.json`,
   // "Adicionar à Tela de Início" no iPhone abre como app, sem a barra do Safari
-  appleWebApp: { capable: true, title: 'FutStatis', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'FutStats', statusBarStyle: 'black-translucent' },
   formatDetection: { telephone: false },
   icons: {
     icon: [{ url: `${base}/icons/favicon-32.png`, sizes: '32x32' }, { url: `${base}/icons/icon-192.png`, sizes: '192x192' }],

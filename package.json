@@ -1,8 +1,8 @@
 {
-  "name": "futstatis-web",
+  "name": "futstats-web",
   "version": "1.0.0",
   "private": true,
-  "description": "Versão web do FutStatis (Next.js, export estático)",
+  "description": "Versão web do FutStats (Next.js, export estático)",
   "engines": {
     "node": ">=20"
   },

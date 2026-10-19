@@ -225,9 +225,9 @@ export function HomeScreen() {
     <div className="pb-safe">
       <header className="sticky top-0 z-30 bg-card pt-safe">
         <div className="flex h-14 items-center px-4">
-          <button type="button" onClick={onLogoPress} className="flex items-center text-xl text-ink" aria-label="FutStatis">
+          <button type="button" onClick={onLogoPress} className="flex items-center text-xl text-ink" aria-label="FutStats">
             <span>Fut</span>
-            <span className="font-black">Statis</span>
+            <span className="font-black">Stats</span>
             <Tv size={20} className="ml-1.5 text-gold-2" />
           </button>
           {isAdmin && (
