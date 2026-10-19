@@ -5,6 +5,7 @@
 // - 409 = aparelho ainda não registrado: registra e repete;
 // - tipos de aviso por inscrição: lista vazia não existe (vira "deixar de seguir").
 import { buildEndpoint, requestApi } from './api';
+import { storageGet, storageSet } from './storage';
 import { showToast } from './toast';
 import { enableWebPush, isWebPushEnabled } from './webPush';
 
@@ -67,7 +68,19 @@ function locate(target: FollowTarget): { list: 'matches' | 'teams' | 'leagues'; 
   if (target.type === 'team') return { list: 'teams', id: String(target.teamId) };
   if (target.type === 'league') return { list: 'leagues', id: target.league.toUpperCase() };
   if (target.matchId) return { list: 'matches', id: String(target.matchId) };
-  return null; // jogo só com ID da ESPN: o match_id volta na resposta do POST
+  // Jogo só com ID da ESPN (aba Ao Vivo): usa o match_id que a API devolveu ao seguir
+  const known = target.espnMatchId != null ? espnToMatchId.get(String(target.espnMatchId)) : undefined;
+  return known ? { list: 'matches', id: known } : null;
+}
+
+// ID da ESPN -> match_id do banco (guardado no navegador: vale também depois de recarregar)
+const ESPN_MAP_KEY = 'follows_espn_map';
+const espnToMatchId = new Map<string, string>(
+  Object.entries(typeof window === 'undefined' ? {} : JSON.parse(storageGet(ESPN_MAP_KEY) || '{}') as Record<string, string>),
+);
+function rememberEspnMatch(espnId: string, matchId: string) {
+  espnToMatchId.set(espnId, matchId);
+  storageSet(ESPN_MAP_KEY, JSON.stringify(Object.fromEntries(Array.from(espnToMatchId).slice(-200))));
 }
 
 function targetBody(target: FollowTarget): Record<string, unknown> {
@@ -139,7 +152,8 @@ export async function toggleFollow(target: FollowTarget) {
     return;
   }
   // Seguiu pelo ID da ESPN: a API devolve o match_id
-  if (!following && target.type === 'match' && !target.matchId && result.data?.match_id) {
+  if (!following && target.type === 'match' && !target.matchId && result.data?.match_id && target.espnMatchId != null) {
+    rememberEspnMatch(String(target.espnMatchId), String(result.data.match_id));
     setFollowing(target, true, String(result.data.match_id));
   }
 }

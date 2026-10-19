@@ -293,7 +293,13 @@ function MatchScreen(params: RouteParams) {
         right={
           <>
             {!finished && (
-              <FollowStar target={{ type: 'match', matchId: params.dbMatchId || undefined, espnMatchId: getEspnMatchId(match) }} name={`${homeName} x ${awayName}`} />
+              <FollowStar
+                target={{
+                  type: 'match',
+                  matchId: params.dbMatchId || undefined,
+                  // A rota usa o ID da ESPN (quando difere do match_id); o history não traz id_event
+                  espnMatchId: id !== params.dbMatchId ? id : getEspnMatchId(match) || undefined,
+                }} name={`${homeName} x ${awayName}`} />
             )}
             <IconButton label="Atualizar" onClick={refresh} disabled={refreshing}>
               <RotateCw size={20} className={refreshing ? 'animate-spin text-accent' : ''} />

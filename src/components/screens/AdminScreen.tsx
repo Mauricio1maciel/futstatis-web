@@ -8,7 +8,7 @@ import { Pills } from '@/components/ui/Pills';
 import { TopBar } from '@/components/ui/TopBar';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { buildEndpoint, requestApi } from '@/lib/api';
-import { loginAdmin, logoutAdmin } from '@/lib/auth';
+import { getOrCreateDeviceId, loginAdmin, logoutAdmin } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/config';
 
 type ActionResult = { loading: boolean; status?: number; text?: string };
@@ -98,7 +98,10 @@ function AdminPanel() {
 
   const run = async (key: string, endpoint: string) => {
     setResults(prev => ({ ...prev, [key]: { loading: true } }));
-    const result = await requestApi(endpoint);
+    // Push de teste: vai para ESTE navegador (precisa estar com "Avisos de jogos" ativado)
+    const options: RequestInit =
+      endpoint === '/admin/push/test' ? { method: 'POST', body: JSON.stringify({ device_id: getOrCreateDeviceId() }) } : {};
+    const result = await requestApi(endpoint, options);
     setResults(prev => ({
       ...prev,
       [key]: { loading: false, status: result?.status, text: result ? formatResult(result.data) : 'Falha na requisição' },
@@ -137,6 +140,9 @@ function AdminPanel() {
         <ShieldCheck size={16} className="text-gold-2" />
         <span className="text-sm font-bold text-gold-2">Modo admin</span>
       </div>
+
+      {sectionTitle('Notificações')}
+      {action('push-test', 'Enviar push de teste para este aparelho', '/admin/push/test')}
 
       {sectionTitle('Sincronizações gerais')}
       {action('sync-daily', 'Sincronização diária (background)', '/admin/sync-daily')}
