@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePushSupport } from '@/hooks/usePushSupport';
 import { clearFollows, loadFollows } from '@/lib/follows';
 import { showToast } from '@/lib/toast';
-import { disableWebPush, enableWebPush, isWebPushEnabled } from '@/lib/webPush';
+import { disableWebPush, enableErrorMessage, enableWebPushDetailed, isWebPushEnabled } from '@/lib/webPush';
 
 // "Avisos de jogos": liga/desliga as notificações deste navegador.
 // No iPhone só funciona com o site instalado na Tela de Início: aí mostra a dica
@@ -42,11 +42,14 @@ export function NotificationsSetting() {
         clearFollows();
         setEnabled(false);
       }
-    } else if (await enableWebPush(true)) {
-      setEnabled(true);
-      loadFollows();
     } else {
-      showToast('Notificações não ativadas', 'Permita as notificações do site nas configurações do navegador.');
+      const result = await enableWebPushDetailed(true);
+      if (result.ok) {
+        setEnabled(true);
+        loadFollows();
+      } else {
+        showToast(...enableErrorMessage(result), 9000);
+      }
     }
     setBusy(false);
   };

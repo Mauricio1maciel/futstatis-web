@@ -64,34 +64,61 @@ async function serviceWorker() {
   return navigator.serviceWorker.register(`${BASE_PATH}/sw.js`, { scope: `${BASE_PATH}/` });
 }
 
+export type EnableResult = { ok: true } | { ok: false; reason: 'denied' | 'unsupported' | 'server-off' | 'error'; detail?: string };
+
 /**
- * Inscreve o navegador e registra no servidor. askPermission: só depois de um toque do usuário
- * (o navegador exige). Devolve true se ficou registrado.
+ * Inscreve o navegador e registra no servidor. askPermission: só depois de um toque do usuário.
+ * A permissão é pedida ANTES de qualquer espera de rede: no Chrome do celular o pedido feito
+ * depois de um await perde o "toque" e é recusado sem aparecer.
  */
-export async function enableWebPush(askPermission = true): Promise<boolean> {
-  if (!hasPushApi()) return false;
-  const key = await getPublicKey();
-  if (!key) return false;
+export async function enableWebPushDetailed(askPermission = true): Promise<EnableResult> {
+  if (!hasPushApi()) return { ok: false, reason: 'unsupported' };
+  if (Notification.permission === 'denied') return { ok: false, reason: 'denied' };
   if (Notification.permission !== 'granted') {
-    if (!askPermission || (await Notification.requestPermission()) !== 'granted') return false;
+    if (!askPermission) return { ok: false, reason: 'denied' };
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return { ok: false, reason: 'denied' };
   }
+  const key = await getPublicKey();
+  if (!key) return { ok: false, reason: 'server-off' };
   try {
     const registration = await serviceWorker();
-    await navigator.serviceWorker.ready;
-    const subscription =
-      (await registration.pushManager.getSubscription()) ||
-      (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToUint8Array(key) }));
+    const ready = await navigator.serviceWorker.ready;
+    const manager = (ready || registration).pushManager;
+    let subscription = await manager.getSubscription();
+    // Inscrição antiga feita com outra chave do servidor: refaz
+    const current = subscription?.options?.applicationServerKey;
+    if (subscription && current && btoa(String.fromCharCode(...new Uint8Array(current))) !== btoa(String.fromCharCode(...base64UrlToUint8Array(key)))) {
+      await subscription.unsubscribe();
+      subscription = null;
+    }
+    subscription ??= await manager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToUint8Array(key) });
     const result = await requestApi(
       '/push/register',
       { method: 'POST', body: JSON.stringify({ platform: 'web', subscription: subscription.toJSON() }) },
       { guestOnly: true },
     );
-    if (!result || result.status >= 400) return false;
+    if (!result || result.status >= 400) {
+      const error = (result?.data as { error?: string } | null)?.error;
+      return { ok: false, reason: 'error', detail: error || `servidor respondeu ${result?.status ?? 'sem conexão'}` };
+    }
     storageSet(ENABLED_KEY, '1');
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, reason: 'error', detail: (error as Error)?.message || String(error) };
   }
+}
+
+export const enableWebPush = async (askPermission = true) => (await enableWebPushDetailed(askPermission)).ok;
+
+/** Mensagem para mostrar quando ativar falha */
+export function enableErrorMessage(result: EnableResult): [string, string] {
+  if (result.ok) return ['', ''];
+  if (result.reason === 'denied')
+    return ['Notificações bloqueadas para este site', 'Toque no cadeado ao lado do endereço → Permissões → Notificações → Permitir. Depois tente de novo.'];
+  if (result.reason === 'server-off') return ['Servidor sem notificações agora', 'Tente de novo em alguns minutos.'];
+  if (result.reason === 'unsupported') return ['Este navegador não aceita notificações', 'Use o Chrome, o Firefox, o Edge ou o Safari atualizados.'];
+  return ['Não foi possível ativar', result.detail || 'Erro desconhecido'];
 }
 
 // Desligar: apaga o registro do aparelho e tudo o que ele seguia (DELETE /push/register)

@@ -7,7 +7,7 @@
 import { buildEndpoint, requestApi } from './api';
 import { storageGet, storageSet } from './storage';
 import { showToast } from './toast';
-import { enableWebPush, isWebPushEnabled } from './webPush';
+import { enableErrorMessage, enableWebPush, enableWebPushDetailed, isWebPushEnabled } from './webPush';
 
 export type FollowTarget =
   | { type: 'team'; teamId: string | number }
@@ -135,8 +135,9 @@ function setFollowing(target: FollowTarget, following: boolean, id?: string) {
 export async function toggleFollow(target: FollowTarget) {
   // Primeiro toque numa estrela: ativa as notificações neste navegador
   if (!isWebPushEnabled()) {
-    if (!(await registerWebPush())) {
-      showToast('Notificações não ativadas', 'Permita as notificações do site no navegador para seguir.');
+    const result = await enableWebPushDetailed(true);
+    if (!result.ok) {
+      showToast(...enableErrorMessage(result), 9000);
       return;
     }
     await loadFollows();
