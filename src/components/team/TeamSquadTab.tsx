@@ -61,7 +61,7 @@ export function TeamSquadTab({ teamId, league, teamName, refreshSignal }: { team
                     onClick={() => setPreview('player', player.id, { ...player, team_name: player.team_name || teamName })}
                     className="flex items-center gap-3.5 rounded-lg px-1 py-2.5 active:bg-white/5"
                   >
-                    <Crest src={player.headshot_url} size={40} person />
+                    <Crest src={player.headshot_url} size={40} person name={player.name} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-semibold text-ink">{player.name}</span>
                       {info && <span className="mt-0.5 block truncate text-xs text-muted">{info}</span>}

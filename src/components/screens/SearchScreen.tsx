@@ -130,7 +130,7 @@ export function SearchScreen() {
                 key={`${player.id}-${index}`}
                 href={playerHref(player.id)}
                 onClick={() => setPreview('player', player.id, player)}
-                icon={<Crest src={player.headshot_url} size={40} person />}
+                icon={<Crest src={player.headshot_url} size={40} person name={player.name} />}
                 title={player.name}
                 subtitle={[translatePosition(player.position) || 'Jogador', player.team_name].filter(Boolean).join(' • ')}
               />

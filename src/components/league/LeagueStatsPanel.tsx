@@ -21,7 +21,7 @@ function StatRow({ player }: { player: LeagueStatsPlayer }) {
   const content = (
     <>
       <span className="w-7.5 shrink-0 text-center text-base font-bold text-faint">{player.rank}</span>
-      <Crest src={player.photo} size={44} person className="mx-2.5" />
+      <Crest src={player.photo} size={44} person name={player.name} className="mx-2.5" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-bold text-ink">{player.name}</span>
         <span className="mt-1 flex items-center gap-1.5">

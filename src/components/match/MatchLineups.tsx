@@ -27,7 +27,7 @@ function PlayerNode({ player, teamName, out = false }: { player: PlacedPlayer; t
   const body = (
     <>
       <span className="relative">
-        <Crest src={player.headshot_url} size={40} person className="border-2 border-white bg-white" />
+        <Crest src={player.headshot_url} size={40} person name={player.player_name} className="border-2 border-white bg-white" />
         <span className="absolute -left-1.5 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] font-bold text-black shadow">
           {player.jersey || '-'}
         </span>
@@ -90,7 +90,7 @@ function Substitutions({ events, players, teamName }: { events: MatchEvent[]; pl
             <>
               <span className="text-[13px] text-muted">{event.minute}</span>
               <span className="relative mt-1">
-                <Crest src={player?.headshot_url} size={48} person className="border-2 border-white bg-white" />
+                <Crest src={player?.headshot_url} size={48} person name={event.player_name} className="border-2 border-white bg-white" />
                 {player?.jersey && (
                   <span className="absolute -right-1.5 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black">
                     {player.jersey}
@@ -199,7 +199,7 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
               const id = playerId(player);
               const body = (
                 <>
-                  <Crest src={player.headshot_url} size={30} person className="mr-3" />
+                  <Crest src={player.headshot_url} size={30} person name={player.player_name} className="mr-3" />
                   <span className="min-w-0 flex-1 truncate text-sm text-ink">{player.player_name}</span>
                   <span className="text-[11px] font-bold text-faint">{player.jersey ? `#${player.jersey}` : ''}</span>
                 </>

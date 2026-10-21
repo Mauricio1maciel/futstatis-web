@@ -9,6 +9,7 @@ import { getCompetitions } from '@/components/team/Competitions';
 import { TeamMatchesTab } from '@/components/team/TeamMatchesTab';
 import { TeamSquadTab } from '@/components/team/TeamSquadTab';
 import { TeamStandingsTab } from '@/components/team/TeamStandingsTab';
+import { TeamStatsTab } from '@/components/team/TeamStatsTab';
 import { Crest } from '@/components/ui/Crest';
 import { LazyPanel } from '@/components/ui/LazyPanel';
 import { Pills, UnderlineTabs } from '@/components/ui/Pills';
@@ -30,7 +31,7 @@ import { asArray, type Match, type Team } from '@/lib/types';
 const TEAM_SEASON_ROUNDS = Array.from({ length: 41 }, (_, n) => n).join(',');
 
 type MainTab = 'temporada' | 'elenco';
-type SubTab = 'jogos' | 'tabela';
+type SubTab = 'jogos' | 'tabela' | 'estatisticas';
 
 export function TeamRoute() {
   const id = (useSearchParams().get('id') || '').trim();
@@ -43,7 +44,7 @@ function TeamScreen({ id }: { id: string }) {
   const [preview] = useState(() => getPreview<Partial<Team>>('team', id));
   const [mainTab, setMainTab] = useRememberedState<MainTab>(memory, 'aba', 'temporada');
   const [subTab, setSubTab] = useRememberedState<SubTab>(memory, 'subaba', 'jogos');
-  const [signals, setSignals] = useState({ jogos: 0, tabela: 0, elenco: 0 });
+  const [signals, setSignals] = useState({ jogos: 0, tabela: 0, estatisticas: 0, elenco: 0 });
 
   const details = useApi<Team>(buildEndpoint('/details', { api_id: id, type: 'team' }), {
     parse: raw => (raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Team) : ({} as Team)),
@@ -120,6 +121,7 @@ function TeamScreen({ id }: { id: string }) {
             options={[
               { value: 'jogos', label: 'Jogos' },
               { value: 'tabela', label: 'Classificação' },
+              { value: 'estatisticas', label: 'Estatísticas' },
             ]}
             className="px-2.5 py-3"
           />
@@ -150,6 +152,9 @@ function TeamScreen({ id }: { id: string }) {
               memory={memory}
             />
           )}
+        </LazyPanel>
+        <LazyPanel active={mainTab === 'temporada' && subTab === 'estatisticas'}>
+          <TeamStatsTab teamId={id} refreshSignal={signals.estatisticas} />
         </LazyPanel>
         <LazyPanel active={mainTab === 'elenco'}>
           <TeamSquadTab teamId={id} league={matchesQuery.loading ? '' : mainLeague} teamName={name} refreshSignal={signals.elenco} />

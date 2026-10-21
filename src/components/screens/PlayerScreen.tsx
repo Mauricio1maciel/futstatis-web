@@ -4,6 +4,7 @@ import { CalendarDays, Flag, PersonStanding } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { PlayerStatsSection } from '@/components/player/PlayerStatsSection';
 import { Crest } from '@/components/ui/Crest';
 import { NotFoundState } from '@/components/ui/ScreenFallback';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -67,7 +68,7 @@ function PlayerScreen({ id }: { id: string }) {
           {waiting ? (
             <Skeleton className="h-30 w-30 rounded-full" />
           ) : (
-            <Crest src={player.headshot_url} size={120} person alt={player.name} className="border-4 border-card-2" />
+            <Crest src={player.headshot_url} size={120} person name={player.name} alt={player.name} className="border-4 border-card-2" />
           )}
           {!waiting && jersey && jersey !== '0' && (
             <span className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-screen bg-accent text-sm font-bold text-white">
@@ -100,6 +101,8 @@ function PlayerScreen({ id }: { id: string }) {
         <InfoCard icon={<CalendarDays size={20} />} label="Idade" value={age != null ? `${age} anos` : ''} loading={waiting} />
         <InfoCard icon={<Flag size={20} />} label="Nac." value={player.nationality || ''} loading={waiting} />
       </div>
+
+      <PlayerStatsSection playerId={id} />
     </div>
   );
 }

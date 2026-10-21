@@ -163,6 +163,98 @@ export type SearchResult = { leagues: SearchLeague[]; teams: Team[]; players: Pl
 
 export type CalendarDay = { date: string; count: number };
 
+/** Time resumido das rotas de estatísticas */
+export type TeamRef = { id: Id; name: string; crest_url?: string };
+
+export type PlayerTotals = {
+  appearances: number;
+  starts: number;
+  /** Aproximado: 90 por jogo (120 com prorrogação), menos o tempo fora */
+  minutes: number;
+  goals: number;
+  /** Gols de pênalti (já contados em goals) */
+  penalties: number;
+  own_goals: number;
+  yellow_cards: number;
+  red_cards: number;
+};
+
+export type PlayerCompetitionStats = PlayerTotals & { league: string; league_name: string; season: string; team: TeamRef };
+
+export type PlayerMatchLine = {
+  espn_match_id: Id;
+  league: string;
+  season?: string;
+  date: string;
+  team: TeamRef;
+  opponent: TeamRef;
+  home: boolean;
+  goals_for: number;
+  goals_against: number;
+  /** V, E ou D (pênaltis contam como E) */
+  result: 'V' | 'E' | 'D' | string;
+  started: boolean;
+  minutes: number;
+  goals: number;
+  penalties: number;
+  own_goals: number;
+  yellow_cards: number;
+  red_cards: number;
+  /** Minuto em que entrou/saiu ("62'") */
+  subbed_in?: string;
+  subbed_out?: string;
+};
+
+/** /player/stats */
+export type PlayerStats = {
+  player_id: Id;
+  current: PlayerTotals;
+  competitions: PlayerCompetitionStats[];
+  last_matches: PlayerMatchLine[];
+};
+
+export type RecordSplit = { played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number };
+
+export type MatchRef = {
+  match_id: Id;
+  espn_match_id: string;
+  date: string;
+  home_team: string;
+  away_team: string;
+  home_score: number;
+  away_score: number;
+};
+
+export type TeamAverages = {
+  matches: number;
+  possession: number;
+  shots: number;
+  shots_on_target: number;
+  corners: number;
+  fouls: number;
+  yellow_cards: number;
+  red_cards: number;
+  pass_accuracy: number;
+};
+
+export type TeamCompetitionStats = RecordSplit & {
+  league: string;
+  league_name: string;
+  season: string;
+  home: RecordSplit;
+  away: RecordSplit;
+  clean_sheets: number;
+  failed_to_score: number;
+  biggest_win: MatchRef | null;
+  biggest_loss: MatchRef | null;
+  /** null quando nenhum jogo detalhado tem estatística */
+  averages: TeamAverages | null;
+  top_scorers: { player_id: Id; name: string; headshot_url?: string; goals: number }[];
+};
+
+/** /team/stats */
+export type TeamStats = { team_id: Id; competitions: TeamCompetitionStats[] };
+
 // Lista da resposta: aceita [] ou { data: [] } (formato antigo de algumas rotas)
 export function asArray<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];

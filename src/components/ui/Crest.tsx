@@ -12,11 +12,21 @@ type Props = {
   className?: string;
   /** Foto de jogador: recorte redondo e ícone de pessoa quando não há foto */
   person?: boolean;
+  /** Nome: sem imagem, mostra as iniciais (ex: "Pedro Henrique" -> "PH") */
+  name?: string;
 };
+
+// "Gonzalo Plata" -> "GP"; "Pedro" -> "PE"
+export function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 // Escudo, logo ou foto com <img loading="lazy"> (o export estático não otimiza imagens) e um
 // círculo no lugar quando não há imagem ou ela não carrega
-export function Crest({ src, size = 24, alt = '', className = '', person = false }: Props) {
+export function Crest({ src, size = 24, alt = '', className = '', person = false, name }: Props) {
   const [failed, setFailed] = useState<string | null>(null);
   const showImage = isValidImage(src) && failed !== src;
   const box = { width: size, height: size };
@@ -30,7 +40,13 @@ export function Crest({ src, size = 24, alt = '', className = '', person = false
         style={box}
         className={`inline-flex shrink-0 items-center justify-center rounded-full bg-line-2 ${className}`}
       >
-        {person && <User size={Math.round(size * 0.55)} className="text-faint" />}
+        {name && initialsOf(name) ? (
+          <span className="font-bold leading-none text-ink-2" style={{ fontSize: Math.max(9, Math.round(size * 0.36)) }}>
+            {initialsOf(name)}
+          </span>
+        ) : (
+          person && <User size={Math.round(size * 0.55)} className="text-faint" />
+        )}
       </span>
     );
   }

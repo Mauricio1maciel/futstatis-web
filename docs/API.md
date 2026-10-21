@@ -103,6 +103,8 @@ Parâmetros entre `[colchetes]` são opcionais. `season` vazio = temporada mais 
 | `GET /matches` | `league`, `[season]`, `[round]`, `[stage]`, `[date=YYYY-MM-DD]` | lista de jogos |
 | `GET /team/matches` | `id`, `[rounds=1,2,3]` | jogos do time na **temporada atual** de cada competição |
 | `GET /h2h` | `team1`, `team2`, `[limit=10]` | confronto direto (veja abaixo) |
+| `GET /player/stats` | `id` (ID da ESPN, o mesmo do `/details?type=player`), `[season]` | estatísticas do jogador (veja abaixo) |
+| `GET /team/stats` | `id` (api_id), `[season]` | estatísticas do time na temporada (veja abaixo) |
 | `GET /matches/calendar` | `leagues=BSA,PL`, `month=MM`, `year=YYYY` | `[{"date", "count"}]` |
 | `GET /matches/live` | `league`, `[date=YYYYMMDD]` | lista de jogos ao vivo (ESPN, cache de 30s). Aqui `id_event` **e** `match_id` são o ID da ESPN |
 | `GET /match/history` | `id` (ID ESPN), `league` | `{"match", "lineups", "events", "statistics"}` |
@@ -145,8 +147,15 @@ app, as rotas e os formatos são os mesmos das outras ligas, com estas diferenç
 - **Rodada:** nas copas, `round` é sempre 1: navegue pela fase (`round=GROUP_STAGE`).
 - **Série B:** pontos corridos como o Brasileirão (`round=1` a `38`, fase
   `REGULAR_SEASON`). A ESPN não informa a rodada: ela é calculada pelo calendário,
-  considerando jogos adiados. Jogos ainda sem times definidos ficam com `round=0`, fora
-  das 38. Zonas: `acesso` (1º a 4º), `rebaixamento` (17º a 20º) e `neutro`.
+  considerando jogos adiados. Regra de 2026 (CBF): **1º e 2º sobem direto** (zona
+  `acesso`), **3º a 6º vão aos playoffs de acesso** (zona `playoff`) e 17º a 20º caem
+  (`rebaixamento`); o resto é `neutro`.
+- **Playoffs da Série B:** 3º x 6º e 4º x 5º, em ida e volta (21 e 28/11), valendo as
+  outras 2 vagas. A ida é na casa do pior colocado; a volta, na do melhor. Empate no
+  agregado: avança o de **melhor campanha, sem pênaltis**. Os 4 jogos vêm com fase
+  `PLAYOFFS` e `round` 0 (`/matches?league=BSB&round=PLAYOFFS`), com os times "a
+  definir" (ID 0) até o fim da 38ª rodada. Não somam pontos na tabela. Depois da última
+  rodada, o `/matches?league=BSB` sem `round` passa a trazer os playoffs.
 - **Pênaltis e vencedor:** como na football-data. Jogo decidido nos pênaltis traz
   `home_penalty`/`away_penalty`, e `winner` é `HOME_TEAM`, `AWAY_TEAM` ou `DRAW` (vazio
   enquanto o jogo não acabou).
@@ -231,6 +240,50 @@ entre os dois, em qualquer competição e temporada que o banco tem.
 ```
 O `summary` conta todos os jogos; `matches` traz até `limit` (padrão 10, máximo 50).
 Decisão por pênaltis conta como empate no resumo.
+
+**Estatísticas do jogador** (`/player/stats?id=235017`), calculadas das escalações e
+dos lances dos jogos que a ESPN detalha:
+```json
+{ "player_id": 235017,
+  "current": { "appearances": 31, "starts": 28, "minutes": 2410, "goals": 16, "penalties": 3,
+               "own_goals": 0, "yellow_cards": 4, "red_cards": 0 },
+  "competitions": [ { "league": "BSA", "league_name": "Brasileirão - Série A", "season": "2026",
+                      "team": { "id": 1783, "name": "CR Flamengo", "crest_url": "..." },
+                      "appearances": 31, "starts": 28, "minutes": 2410, "goals": 16, ... } ],
+  "last_matches": [ { "espn_match_id": 401841258, "league": "BSA", "date": "2026-10-18T21:30:00Z",
+                      "team": {...}, "opponent": {...}, "home": true, "goals_for": 3, "goals_against": 0,
+                      "result": "V", "started": true, "minutes": 76, "goals": 1, "penalties": 0,
+                      "own_goals": 0, "yellow_cards": 0, "red_cards": 0, "subbed_out": "76'" } ] }
+```
+- `current` soma a temporada atual de cada competição; `competitions` traz uma linha por
+  competição, temporada e time (o jogador que trocou de time aparece duas vezes).
+- `goals` inclui os de pênalti (`penalties`); gol contra fica em `own_goals`.
+- `minutes` é aproximado: 90 por jogo (120 com prorrogação), menos o tempo fora de campo.
+- Reserva que não entrou não conta como jogo. Assistências não vêm (a ESPN não manda nos
+  lances).
+- `last_matches`: até 10, do mais recente; `espn_match_id` abre a tela do jogo.
+- Só jogos com escalação da ESPN (temporada atual das ligas acompanhadas).
+
+**Estatísticas do time** (`/team/stats?id=1783`), uma linha por competição:
+```json
+{ "team_id": 1783,
+  "competitions": [ { "league": "BSA", "league_name": "Brasileirão - Série A", "season": "2026",
+      "played": 34, "wins": 21, "draws": 7, "losses": 6, "goals_for": 58, "goals_against": 27,
+      "home": { "played": 17, "wins": 13, ... }, "away": { ... },
+      "clean_sheets": 14, "failed_to_score": 4,
+      "biggest_win": { "match_id": 4821, "espn_match_id": "401841258", "date": "...",
+                       "home_team": "CR Flamengo", "away_team": "EC Bahia", "home_score": 4, "away_score": 0 },
+      "biggest_loss": { ... },
+      "averages": { "matches": 34, "possession": 57.3, "shots": 15.2, "shots_on_target": 5.4,
+                    "corners": 6.1, "fouls": 12.8, "yellow_cards": 2.1, "red_cards": 0.1,
+                    "pass_accuracy": 86.2 },
+      "top_scorers": [ { "player_id": 235017, "name": "Pedro", "headshot_url": "...", "goals": 16 } ] } ] }
+```
+- A campanha (`played`, `wins`... `biggest_loss`) conta todos os jogos encerrados; decisão
+  por pênaltis conta como empate.
+- `averages` e `top_scorers` vêm dos jogos detalhados pela ESPN (`averages.matches` diz
+  quantos); `averages` é `null` quando nenhum tem estatística. `top_scorers`: até 5.
+- Sem `season`: a temporada atual de cada competição em que o time joga.
 
 **Time:**
 ```json
