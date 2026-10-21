@@ -175,6 +175,8 @@ export type PlayerTotals = {
   /** Gols de pênalti (já contados em goals) */
   penalties: number;
   own_goals: number;
+  /** Passes para gol (ausente em versões antigas da API) */
+  assists?: number;
   yellow_cards: number;
   red_cards: number;
 };
@@ -198,6 +200,7 @@ export type PlayerMatchLine = {
   goals: number;
   penalties: number;
   own_goals: number;
+  assists?: number;
   yellow_cards: number;
   red_cards: number;
   /** Minuto em que entrou/saiu ("62'") */

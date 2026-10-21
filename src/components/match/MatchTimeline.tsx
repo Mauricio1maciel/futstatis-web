@@ -30,6 +30,9 @@ function EventIcon({ kind }: { kind: EventKind }) {
   return <span className="h-1.5 w-1.5 rounded-full bg-faint" />;
 }
 
+// O que details significa em cada lance (docs/API.md, "Eventos do jogo")
+const DETAIL_PREFIX: Partial<Record<EventKind, string>> = { substitution: 'saiu ', goal: 'assist. ' };
+
 function EventText({ event, align }: { event: MatchEvent; align: 'left' | 'right' }) {
   const label = eventLabel(event.event_type);
   return (
@@ -37,7 +40,7 @@ function EventText({ event, align }: { event: MatchEvent; align: 'left' | 'right
       <p className="text-sm font-bold text-white">{event.player_name || label}</p>
       <p className="mt-0.5 text-xs text-muted">
         {event.player_name ? label : ''}
-        {event.details ? `${event.player_name ? ' • ' : ''}${classifyEvent(event.event_type) === 'substitution' ? 'saiu ' : ''}${event.details}` : ''}
+        {event.details ? `${event.player_name ? ' • ' : ''}${DETAIL_PREFIX[classifyEvent(event.event_type)] ?? ''}${event.details}` : ''}
       </p>
     </div>
   );

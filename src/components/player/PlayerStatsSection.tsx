@@ -3,7 +3,6 @@
 import { ArrowDown, ArrowUp, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { getLeague } from '@/config/leagues';
 import { ResultBadge } from '@/components/match/MatchRow';
 import { Crest } from '@/components/ui/Crest';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -47,17 +46,19 @@ function Cards({ yellow, red }: { yellow: number; red: number }) {
 }
 
 function CurrentSeason({ current }: { current: PlayerTotals }) {
+  const withAssists = current.assists != null;
   const items = [
-    { label: 'Jogos', value: num(current.appearances), sub: `${current.starts} como titular` },
+    { label: 'Jogos', value: num(current.appearances), sub: `${current.starts} titular` },
     // "16 gols (3 de pênalti)"
     { label: 'Gols', value: num(current.goals), sub: current.penalties > 0 ? `(${current.penalties} de pênalti)` : '' },
+    ...(withAssists ? [{ label: 'Assist.', value: num(current.assists ?? 0), sub: '' }] : []),
     { label: 'Minutos', value: num(current.minutes), sub: '' },
   ];
   return (
-    <div className="grid grid-cols-4 divide-x divide-card-2 py-4 text-center">
+    <div className={`grid ${withAssists ? 'grid-cols-5' : 'grid-cols-4'} divide-x divide-card-2 py-4 text-center`}>
       {items.map(item => (
         <div key={item.label} className="px-1">
-          <p className="text-xl font-bold text-white">{item.value}</p>
+          <p className="text-lg font-bold text-white">{item.value}</p>
           <p className="mt-0.5 text-xs text-muted">{item.label}</p>
           {item.sub && <p className="mt-0.5 text-[10px] text-faint">{item.sub}</p>}
         </div>
@@ -81,6 +82,9 @@ function MatchActions({ line }: { line: PlayerMatchLine }) {
           ⚽{line.goals > 1 ? `×${line.goals}` : ''}
           {line.penalties > 0 && <span className="text-faint"> (pên.)</span>}
         </span>
+      )}
+      {!!line.assists && line.assists > 0 && (
+        <span title="Assistências">👟{line.assists > 1 ? `×${line.assists}` : ''}</span>
       )}
       {line.own_goals > 0 && <span>⚽ contra{line.own_goals > 1 ? ` ×${line.own_goals}` : ''}</span>}
       {line.yellow_cards > 0 && <span className="h-3 w-2 rounded-xs bg-gold" aria-label="Cartão amarelo" />}
@@ -144,26 +148,28 @@ export function PlayerStatsSection({ playerId }: { playerId: string }) {
   if (!data.competitions?.length) {
     return <EmptyState compact icon={BarChart3} text="Sem estatísticas nesta temporada" />;
   }
+  const hasAssists = data.current.assists != null;
 
   return (
     <div className="pb-4">
-      <Card title="Temporada atual" note="Minutos aproximados. Assistências não disponíveis.">
+      <Card
+        title="Temporada atual"
+        note={data.current.assists != null ? 'Minutos aproximados.' : 'Minutos aproximados. Assistências não disponíveis.'}
+      >
         <CurrentSeason current={data.current} />
       </Card>
 
       <Card title="Por competição">
         <div className="flex px-4 pb-1 pt-2.5 text-[11px] text-faint">
           <span className="flex-1">Competição / time</span>
-          <span className="w-8 text-center">J</span>
-          <span className="w-8 text-center">G</span>
-          <span className="w-12 text-center">Cart.</span>
+          <span className="w-7 text-center">J</span>
+          <span className="w-7 text-center">G</span>
+          {hasAssists && <span className="w-7 text-center">A</span>}
+          <span className="w-11 text-center">Cart.</span>
         </div>
         <ul>
           {data.competitions.map((c, index) => (
-            <li key={`${c.league}-${c.season}-${c.team.id}-${index}`} className="flex items-center gap-3 border-t border-card-2 px-4 py-3">
-              <span className="w-6 shrink-0 text-center text-lg leading-none" aria-hidden>
-                {getLeague(c.league)?.icon ?? '🏆'}
-              </span>
+            <li key={`${c.league}-${c.season}-${c.team.id}-${index}`} className="flex items-center gap-1 border-t border-card-2 px-4 py-3">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-semibold text-ink">{c.league_name}</span>
                 {Number(c.team.id) > 0 ? (
@@ -178,9 +184,10 @@ export function PlayerStatsSection({ playerId }: { playerId: string }) {
                   </span>
                 )}
               </span>
-              <span className="w-8 text-center text-sm text-ink-2">{c.appearances}</span>
-              <span className="w-8 text-center text-sm font-bold text-white">{c.goals}</span>
-              <span className="flex w-12 justify-center text-xs text-ink-2">
+              <span className="w-7 text-center text-sm text-ink-2">{c.appearances}</span>
+              <span className="w-7 text-center text-sm font-bold text-white">{c.goals}</span>
+              {hasAssists && <span className="w-7 text-center text-sm text-ink-2">{c.assists ?? 0}</span>}
+              <span className="flex w-11 justify-center text-xs text-ink-2">
                 <Cards yellow={c.yellow_cards} red={c.red_cards} />
               </span>
             </li>
