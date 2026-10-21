@@ -114,3 +114,68 @@ export function eventLabel(type: string) {
   if (kind === 'goal' && /penalty/i.test(type)) return 'Gol de pênalti';
   return EVENT_LABELS[kind] || type;
 }
+
+// ---------------- Marcas de cada jogador na escalação (gols, assistências, cartões, entrou/saiu) ----------------
+// Os nomes dos eventos são os mesmos de lineups.player_name do jogo (docs/API.md, "Eventos do jogo").
+// A comparação ignora acento e maiúsculas: a ESPN às vezes grafa "Joaquín"/"Joaquin"
+
+export const normalizeName = (name: string) =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+export type PlayerMarks = {
+  goals: number;
+  /** Quantos dos gols foram de pênalti */
+  penalties: number;
+  ownGoals: number;
+  assists: number;
+  yellow: number;
+  red: number;
+  /** Minuto em que entrou / saiu */
+  subbedIn?: string;
+  subbedOut?: string;
+};
+
+const isGoal = (type: string) => type === 'Goal' || type.startsWith('Goal - ') || type === 'Penalty - Scored';
+// Só nos gols com bola rolando o details é o assistente (na substituição ele é quem saiu)
+const isAssistedGoal = (type: string) => type === 'Goal' || type.startsWith('Goal - ');
+
+export function buildPlayerMarks(events: MatchEvent[]) {
+  const marks = new Map<string, PlayerMarks>();
+  const of = (name: string) => {
+    const key = normalizeName(name);
+    let entry = marks.get(key);
+    if (!entry) {
+      entry = { goals: 0, penalties: 0, ownGoals: 0, assists: 0, yellow: 0, red: 0 };
+      marks.set(key, entry);
+    }
+    return entry;
+  };
+
+  events.forEach(event => {
+    const type = String(event.event_type || '');
+    const player = String(event.player_name || '').trim();
+    const details = String(event.details || '').trim();
+    if (isGoal(type) && player) {
+      const m = of(player);
+      m.goals += 1;
+      if (type === 'Penalty - Scored') m.penalties += 1;
+    }
+    if (isAssistedGoal(type) && details) of(details).assists += 1;
+    if (type === 'Own Goal' && player) of(player).ownGoals += 1;
+
+    const kind = classifyEvent(type);
+    if (!player) return;
+    if (kind === 'yellow') of(player).yellow += 1;
+    if (kind === 'red') of(player).red += 1;
+    if (kind === 'second-yellow') {
+      of(player).yellow += 1;
+      of(player).red += 1;
+    }
+    if (kind === 'substitution') {
+      of(player).subbedIn = event.minute;
+      if (details) of(details).subbedOut = event.minute;
+    }
+  });
+
+  return (name: string): PlayerMarks | undefined => marks.get(normalizeName(name));
+}

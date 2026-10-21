@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Crest } from '@/components/ui/Crest';
-import { classifyEvent, placeStarters, shortPlayerName, type PlacedPlayer } from '@/lib/lineup';
+import { buildPlayerMarks, classifyEvent, placeStarters, shortPlayerName, type PlacedPlayer, type PlayerMarks } from '@/lib/lineup';
 import { teamDisplayName } from '@/lib/matches';
 import { setPreview } from '@/lib/preview';
 import { playerHref } from '@/lib/routes';
@@ -14,15 +14,64 @@ type Side = 'home' | 'away';
 
 const playerId = (p: LineupPlayer) => p.espn_player_id;
 
-const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-// A ESPN às vezes grafa o nome de quem saiu diferente da escalação ("Joaquín"/"Joaquin")
-const sameName = (a: string, b: string) => normalize(a) === normalize(b);
-
 function rememberPlayer(p: LineupPlayer, teamName?: string) {
   setPreview('player', playerId(p), { name: p.player_name, team_name: teamName, headshot_url: p.headshot_url, jersey_number: p.jersey });
 }
 
-function PlayerNode({ player, teamName, out = false }: { player: PlacedPlayer; teamName?: string; out?: boolean }) {
+// Pinta o ⚽ de vermelho (branco vira vermelho, o preto continua preto) para o gol contra
+const RED_BALL = { filter: 'brightness(0.6) sepia(1) saturate(20) hue-rotate(-40deg)' };
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function Mark({ icon, count, penalty = false, label }: { icon: ReactNode; count: number; penalty?: boolean; label: string }) {
+  return (
+    <span title={label} aria-label={label} className="inline-flex items-center gap-px leading-none">
+      {icon}
+      {count > 1 && <span className="text-[10px] font-bold">{count}</span>}
+      {penalty && <span className="text-[8px] font-bold">P</span>}
+    </span>
+  );
+}
+
+// O que o jogador fez no jogo: cartões, ⚽ gols ("P" se teve de pênalti), gol contra e 👟 assistências
+function PlayerMarkIcons({ marks, className }: { marks?: PlayerMarks; className: string }) {
+  if (!marks) return null;
+  const { goals, penalties, ownGoals, assists, yellow, red } = marks;
+  if (!goals && !ownGoals && !assists && !yellow && !red) return null;
+  return (
+    <span className={className}>
+      {(yellow > 0 || red > 0) && (
+        <span
+          aria-label={red > 0 ? 'Cartão vermelho' : 'Cartão amarelo'}
+          className="relative inline-block h-3 w-2.5"
+        >
+          <span className={`absolute left-0 top-0 h-3 w-2 rounded-xs ${yellow > 0 ? 'bg-gold' : 'bg-live'}`} />
+          {yellow > 0 && red > 0 && <span className="absolute -right-0.5 top-0.5 h-3 w-2 rounded-xs bg-live" />}
+        </span>
+      )}
+      {goals > 0 && (
+        <Mark
+          icon={<span className="text-[11px]">⚽</span>}
+          count={goals}
+          penalty={penalties > 0}
+          label={`${plural(goals, 'gol', 'gols')}${penalties > 0 ? ` (${penalties} de pênalti)` : ''}`}
+        />
+      )}
+      {ownGoals > 0 && (
+        <Mark
+          icon={<span className="text-[11px]" style={RED_BALL}>⚽</span>}
+          count={ownGoals}
+          label={plural(ownGoals, 'gol contra', 'gols contra')}
+        />
+      )}
+      {assists > 0 && (
+        <Mark icon={<span className="text-[11px]">👟</span>} count={assists} label={plural(assists, 'assistência', 'assistências')} />
+      )}
+    </span>
+  );
+}
+
+function PlayerNode({ player, teamName, marks }: { player: PlacedPlayer; teamName?: string; marks?: PlayerMarks }) {
   const id = playerId(player);
   const body = (
     <>
@@ -31,11 +80,15 @@ function PlayerNode({ player, teamName, out = false }: { player: PlacedPlayer; t
         <span className="absolute -left-1.5 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-[10px] font-bold text-black shadow">
           {player.jersey || '-'}
         </span>
-        {out && (
-          <span aria-label="Substituído" className="absolute -bottom-0.5 -left-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-live text-white">
+        {marks?.subbedOut && (
+          <span aria-label={`Saiu aos ${marks.subbedOut}`} className="absolute -bottom-0.5 -left-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-live text-white">
             <ArrowDown size={11} strokeWidth={3} />
           </span>
         )}
+        <PlayerMarkIcons
+          marks={marks}
+          className="absolute left-full top-0 ml-0.5 flex flex-col items-start gap-0.5 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]"
+        />
       </span>
       <span className="mt-1 max-w-full truncate text-[10px] font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
         {shortPlayerName(player.player_name)}
@@ -77,7 +130,17 @@ function Pitch({ children, formation }: { children: ReactNode; formation?: strin
 }
 
 // Quem entrou durante o jogo (eventos de substituição do time), com o minuto
-function Substitutions({ events, players, teamName }: { events: MatchEvent[]; players: LineupPlayer[]; teamName?: string }) {
+function Substitutions({
+  events,
+  players,
+  teamName,
+  marksOf,
+}: {
+  events: MatchEvent[];
+  players: LineupPlayer[];
+  teamName?: string;
+  marksOf: (name: string) => PlayerMarks | undefined;
+}) {
   if (events.length === 0) return null;
   return (
     <section className="mx-4 mt-5 overflow-hidden rounded-xl bg-card">
@@ -107,6 +170,7 @@ function Substitutions({ events, players, teamName }: { events: MatchEvent[]; pl
                   <span className="truncate">{event.details}</span>
                 </span>
               )}
+              <PlayerMarkIcons marks={marksOf(event.player_name)} className="mt-1 flex items-center gap-1.5 text-muted" />
             </>
           );
           const className = 'flex min-w-0 flex-col items-center px-2 text-center';
@@ -145,7 +209,9 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
   const substitutions = events.filter(
     e => classifyEvent(e.event_type) === 'substitution' && String(e.espn_team_id) === String(teamEspnId) && e.player_name,
   );
-  const subbedOut = substitutions.map(e => e.details || '').filter(Boolean);
+  // Gols, assistências, cartões e entrou/saiu de cada um, pelo nome. Vem de todos os eventos do jogo:
+  // o gol contra fica com o time que se beneficiou, não com o do jogador
+  const marksOf = buildPlayerMarks(events);
 
   return (
     <div className="pb-6">
@@ -173,7 +239,7 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
                 key={`${playerId(player) ?? player.player_name}-${index}`}
                 player={player}
                 teamName={teamName}
-                out={subbedOut.some(name => sameName(name, player.player_name))}
+                marks={marksOf(player.player_name)}
               />)
           ) : (
             <div className="absolute inset-x-0 top-[38%] flex flex-col items-center px-8 text-center">
@@ -185,7 +251,7 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
         </Pitch>
       </div>
 
-      <Substitutions events={substitutions} players={players} teamName={teamName} />
+      <Substitutions events={substitutions} players={players} teamName={teamName} marksOf={marksOf} />
 
       <section className="mt-5 px-4">
         <h3 className="mb-3 flex items-center gap-2 border-b border-line pb-2 text-[13px] font-bold tracking-wider text-muted">
@@ -197,11 +263,19 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
           <ul className="space-y-1.5">
             {substitutes.map((player, index) => {
               const id = playerId(player);
+              const marks = marksOf(player.player_name);
               const body = (
                 <>
                   <Crest src={player.headshot_url} size={30} person name={player.player_name} className="mr-3" />
                   <span className="min-w-0 flex-1 truncate text-sm text-ink">{player.player_name}</span>
-                  <span className="text-[11px] font-bold text-faint">{player.jersey ? `#${player.jersey}` : ''}</span>
+                  <PlayerMarkIcons marks={marks} className="ml-2 flex shrink-0 items-center gap-1.5 text-muted" />
+                  {marks?.subbedIn && (
+                    <span aria-label={`Entrou aos ${marks.subbedIn}`} className="ml-2 inline-flex shrink-0 items-center text-xs text-win">
+                      <ArrowUp size={12} strokeWidth={3} />
+                      {marks.subbedIn}
+                    </span>
+                  )}
+                  <span className="ml-2 w-7 shrink-0 text-right text-[11px] font-bold text-faint">{player.jersey ? `#${player.jersey}` : ''}</span>
                 </>
               );
               return (
