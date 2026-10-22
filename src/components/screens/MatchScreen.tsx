@@ -25,7 +25,6 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRememberedState, useScreenMemory } from '@/hooks/useScreenMemory';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { buildEndpoint, fetchApi, refreshParams, withParams } from '@/lib/api';
-import { isAdminLoggedIn } from '@/lib/auth';
 import { parseMatchDate, toDateKey } from '@/lib/dates';
 import { getEspnMatchId, getPhaseLabel, isFinishedMatch, isLiveMatch } from '@/lib/matches';
 import { getPreview } from '@/lib/preview';
@@ -167,25 +166,6 @@ function MatchScreen(params: RouteParams) {
       if (data?.match) {
         applyHistory(data);
         setLoading(false);
-        // Sem escalação: o admin ainda pode buscar na ESPN pela rota antiga (/match_history_old é só de admin)
-        if (!data.lineups?.length && isAdminLoggedIn()) {
-          const date = parseMatchDate(params.date || data.match.match_date);
-          const espnHome = params.espnHome || data.match.espn_home_team_id;
-          const espnAway = params.espnAway || data.match.espn_away_team_id;
-          if (date && espnHome && espnAway) {
-            const old = await fetchApi<MatchHistory>(
-              buildEndpoint('/match_history_old', {
-                league,
-                date: toDateKey(date),
-                espn_home_team_id: String(espnHome),
-                espn_away_team_id: String(espnAway),
-              }),
-            );
-            if (!cancelled && old?.lineups?.length) {
-              applyHistory({ match: null, lineups: old.lineups, events: old.events || [], statistics: [] });
-            }
-          }
-        }
         return;
       }
       const date = parseMatchDate(params.date);

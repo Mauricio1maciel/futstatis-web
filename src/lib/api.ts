@@ -45,6 +45,22 @@ export function refreshParams(isAdmin: boolean, adminParam: 'update' | 'force_up
   return { [adminParam]: isAdmin ? 'true' : undefined, nocache: 'true' };
 }
 
+// 429: a API limita os pedidos por endereço. Até o Retry-After passar, a rota não vai à rede
+const DEFAULT_RETRY_AFTER_S = 30;
+const blockedUntil = new Map<string, number>();
+const routeOf = (endpoint: string) => endpoint.split('?')[0];
+
+export function retryAfterSeconds(header: string | null) {
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds > 0) return Math.ceil(seconds);
+  // Também pode vir como data HTTP
+  const date = header ? Date.parse(header) : NaN;
+  if (Number.isFinite(date)) return Math.max(1, Math.ceil((date - Date.now()) / 1000));
+  return DEFAULT_RETRY_AFTER_S;
+}
+
+const rateLimitMessage = (seconds: number) => `Muitos pedidos em pouco tempo. Tente de novo em ${seconds} s.`;
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -92,7 +108,12 @@ async function sendRequest(endpoint: string, options: RequestInit, guestOnly: bo
     }
   }
 
-  return { status: response.status, data: await parseBody(response), usedAdminToken };
+  return {
+    status: response.status,
+    data: await parseBody(response),
+    usedAdminToken,
+    retryAfter: response.status === 429 ? retryAfterSeconds(response.headers.get('Retry-After')) : 0,
+  };
 }
 
 // Igual ao fetchApi, mas devolve também o status HTTP (tela de admin) e se veio da cópia local
@@ -123,6 +144,13 @@ export async function requestApi<T = unknown>(
     return cached ? { status: 200, data: cached.data, fromCache: true, savedAt: cached.savedAt } : null;
   };
 
+  // Ainda dentro do Retry-After de um 429: nem tenta (cópia local ou o aviso)
+  const route = routeOf(endpoint);
+  const waitMs = (blockedUntil.get(route) || 0) - Date.now();
+  if (waitMs > 0) {
+    return fallbackToCache(rateLimitMessage(Math.ceil(waitMs / 1000))) ?? { status: 429, data: null };
+  }
+
   try {
     let result;
     try {
@@ -132,6 +160,13 @@ export async function requestApi<T = unknown>(
       if (!isGet || isOffline()) throw error;
       await sleep(RETRY_DELAY_MS);
       result = await sendRequest(endpoint, options, guestOnly);
+    }
+
+    if (result.status === 429) {
+      blockedUntil.set(route, Date.now() + result.retryAfter * 1000);
+      const body = result.data as { error?: unknown } | null;
+      const message = typeof body?.error === 'string' && body.error ? body.error : rateLimitMessage(result.retryAfter);
+      return fallbackToCache(message) ?? { status: 429, data: result.data as T };
     }
 
     // Servidor fora do ar (502/503...): melhor mostrar a cópia guardada do que um erro

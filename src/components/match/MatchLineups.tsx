@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Crest } from '@/components/ui/Crest';
 import { buildPlayerMarks, classifyEvent, placeStarters, shortPlayerName, type PlacedPlayer, type PlayerMarks } from '@/lib/lineup';
-import { teamDisplayName } from '@/lib/matches';
+import { isFinishedMatch, teamDisplayName } from '@/lib/matches';
 import { setPreview } from '@/lib/preview';
 import { playerHref } from '@/lib/routes';
 import type { LineupPlayer, Match, MatchEvent } from '@/lib/types';
@@ -244,8 +244,9 @@ export function MatchLineups({ match, lineups, events = [], side, onSideChange }
           ) : (
             <div className="absolute inset-x-0 top-[38%] flex flex-col items-center px-8 text-center">
               <Shield size={32} className="text-white/60" />
-              <p className="mt-2 text-sm font-bold text-white/80">Escalação não disponível</p>
-              <p className="mt-1 text-[11px] italic text-white/60">Toque em atualizar no topo para buscar de novo.</p>
+              <p className="mt-2 text-sm font-bold text-white/80">
+                {isFinishedMatch(match) ? 'Escalação indisponível' : 'Escalações ainda não divulgadas'}
+              </p>
             </div>
           )}
         </Pitch>

@@ -174,3 +174,48 @@ describe('rede ruim', () => {
     expect(await fetchApi('/match/history?id=1&league=BSA')).toBeNull();
   });
 });
+
+describe('limite de pedidos (429)', () => {
+  const limited = (retryAfter: string) =>
+    new Response(JSON.stringify({ error: 'Muitos pedidos em pouco tempo. Tente de novo em 12 s.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': retryAfter },
+    });
+
+  it('não repete na hora e não volta à rede antes do Retry-After', async () => {
+    localStorage.setItem('jwt_token', 'guest-1');
+    const calls = mockFetch(() => limited('12'));
+    expect(await fetchApi('/rate-a?league=BSA')).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(networkState.requests[0].message).toBe('Muitos pedidos em pouco tempo. Tente de novo em 12 s.');
+
+    const again = await requestApi('/rate-a?league=PL');
+    expect(again?.status).toBe(429);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('mostra a cópia guardada quando houver', async () => {
+    localStorage.setItem('jwt_token', 'guest-1');
+    saveCached('/standings?league=RATE', [{ team: 'Flamengo' }]);
+    mockFetch(() => limited('5'));
+    const result = await requestApi('/standings?league=RATE');
+    expect(result).toMatchObject({ status: 200, fromCache: true, data: [{ team: 'Flamengo' }] });
+  });
+
+  it('volta a pedir depois do Retry-After', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    localStorage.setItem('jwt_token', 'guest-1');
+    let first = true;
+    const calls = mockFetch(() => {
+      if (first) {
+        first = false;
+        return limited('3');
+      }
+      return json({ ok: true });
+    });
+    await fetchApi('/rate-b');
+    vi.setSystemTime(Date.now() + 3500);
+    expect(await fetchApi('/rate-b')).toEqual({ ok: true });
+    expect(calls).toHaveLength(2);
+  });
+});
