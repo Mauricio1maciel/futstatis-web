@@ -6,7 +6,7 @@ import { Crest } from '@/components/ui/Crest';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatShortDate, formatTime, getMatchDate } from '@/lib/dates';
 import type { LiveClockData } from '@/lib/liveClock';
-import { getSpecialStatusLabel, isFinishedMatch, isLiveMatch, teamDisplayName } from '@/lib/matches';
+import { getEspnMatchId, getSpecialStatusLabel, isFinishedMatch, isLiveMatch, teamDisplayName } from '@/lib/matches';
 import { setPreview } from '@/lib/preview';
 import { teamHref } from '@/lib/routes';
 import type { Match } from '@/lib/types';
@@ -65,7 +65,7 @@ export function MatchHeader({ match, clock }: { match: Match | null; clock: Live
     center = (
       <>
         <span className={`text-[11px] font-bold ${live ? 'text-live' : 'text-muted'}`}>{live ? 'Ao Vivo' : 'Encerrado'}</span>
-        {live && <LiveClock match={clock} className="text-[13px] font-bold text-live" />}
+        {live && <LiveClock match={clock} matchId={getEspnMatchId(match)} className="text-[13px] font-bold text-live" />}
         <Score match={match} className="mt-0.5 text-[32px] leading-none text-white" penaltyClassName="text-lg" />
       </>
     );

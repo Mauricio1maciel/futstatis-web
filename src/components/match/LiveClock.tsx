@@ -1,10 +1,12 @@
 'use client';
 
 import { memo, useEffect, useState } from 'react';
-import { getLiveClock, type LiveClockData } from '@/lib/liveClock';
+import { anchorClock, getLiveClock, type LiveClockData } from '@/lib/liveClock';
 
 type Props = {
   match: LiveClockData;
+  /** ID do jogo: com ele, recargas com o relógio igual não voltam a contagem (ver anchorClock) */
+  matchId?: string;
   className?: string;
   /** Sem minuto nenhum para mostrar (ex: "Ao vivo") */
   fallback?: string;
@@ -12,9 +14,9 @@ type Props = {
 
 // Minuto do jogo ao vivo que anda sozinho entre uma atualização e outra. Redesenha só quando o
 // minuto vira (um setTimeout até a próxima virada), não a cada segundo em cada card
-function LiveClockView({ match, className, fallback = '' }: Props) {
+function LiveClockView({ match, matchId = '', className, fallback = '' }: Props) {
   const [, setTick] = useState(0);
-  const { text, nextChangeMs } = getLiveClock(match);
+  const { text, nextChangeMs } = getLiveClock(anchorClock(matchId, match));
 
   // Sem lista de dependências de propósito: roda de novo a cada desenho (virada de minuto ou dados
   // novos do jogo), e a limpeza cancela o timeout anterior
@@ -30,6 +32,7 @@ function LiveClockView({ match, className, fallback = '' }: Props) {
 
 const sameClock = (a: Props, b: Props) =>
   a.className === b.className &&
+  a.matchId === b.matchId &&
   a.fallback === b.fallback &&
   a.match.clock === b.match.clock &&
   a.match.clock_seconds === b.match.clock_seconds &&
