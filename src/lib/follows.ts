@@ -137,6 +137,9 @@ export function followingEndpoint(state: Follows) {
     teams: sortedIds(state.teams),
     leagues: [...state.leagues].sort().join(','),
     matches: sortedIds(state.matches),
+    // Só hoje (+ os em andamento). Explícito para funcionar também com o backend antigo (ontem a +7 dias)
+    past: 0,
+    days: 0,
   });
 }
 

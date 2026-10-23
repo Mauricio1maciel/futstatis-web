@@ -17,6 +17,6 @@ describe('endereço de Meus jogos', () => {
 
   it('IDs em ordem, para o mesmo endereço reaproveitar o cache', () => {
     const state = { ...getFollows(), teams: ['1783', '1766', '99'], leagues: ['PL', 'BSA'], matches: ['4821'] };
-    expect(decodeURIComponent(followingEndpoint(state)!)).toBe('/matches/following?teams=99,1766,1783&leagues=BSA,PL&matches=4821');
+    expect(decodeURIComponent(followingEndpoint(state)!)).toBe('/matches/following?teams=99,1766,1783&leagues=BSA,PL&matches=4821&past=0&days=0');
   });
 });
