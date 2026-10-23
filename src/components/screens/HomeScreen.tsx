@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getLeagueName } from '@/config/leagues';
 import { CalendarSheet } from '@/components/CalendarSheet';
 import { FollowStar } from '@/components/FollowStar';
+import { FollowingMatches } from '@/components/home/FollowingMatches';
 import { MatchRow, MatchRowSkeleton } from '@/components/match/MatchRow';
 import { Crest } from '@/components/ui/Crest';
 import { UnderlineTabs } from '@/components/ui/Pills';
@@ -104,6 +105,8 @@ export function HomeScreen() {
   const [failed, setFailed] = useState(false);
   const [loadingPrev, setLoadingPrev] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // "Meus jogos" recarrega junto com as atualizações de fundo da tela (a primeira carga ele faz sozinho)
+  const [followingSignal, setFollowingSignal] = useState(0);
   const generation = useRef(0);
   const busy = useRef(false);
   const taps = useRef({ count: 0, timer: undefined as ReturnType<typeof setTimeout> | undefined });
@@ -121,6 +124,8 @@ export function HomeScreen() {
     async (silent = false) => {
       if (!favorites) return;
       const gen = ++generation.current;
+      // Atualização de fundo (ao vivo a cada 30 s): Meus jogos vem junto
+      if (silent) setFollowingSignal(n => n + 1);
       const key = `${tab}|${selectedDate}|${favorites.join(',')}`;
       if (!silent) {
         setLoading(true);
@@ -262,6 +267,8 @@ export function HomeScreen() {
           className="border-card-2"
         />
       </header>
+
+      <FollowingMatches refreshSignal={followingSignal} />
 
       <p className="py-3 text-center text-sm font-bold text-ink">
         {tab === 'live' && total > 0 ? 'Destaques' : 'Todos Jogos'}

@@ -16,9 +16,18 @@ const KEEP_ONLY_LATEST = ['/players?'];
 // Parâmetros que só furam o cache do servidor: não mudam a chave
 const IGNORED_PARAMS = /^(nocache|update|force_update)=/;
 
-export type CachedResponse<T = unknown> = { data: T; savedAt: number };
+/** etag: a etiqueta (ETag) que a API mandou com esses dados, para pedir de novo com If-None-Match */
+export type CachedResponse<T = unknown> = { data: T; savedAt: number; etag?: string };
 
 type CacheIndex = Record<string, number>; // chave -> savedAt
+
+// Etiquetas em memória (chave -> etag; null = sem etiqueta), para não ler o localStorage a cada pedido
+const etags = new Map<string, string | null>();
+
+function removeEntry(key: string) {
+  etags.delete(key);
+  storageRemove(PREFIX + key);
+}
 
 // Chave = caminho + parâmetros (sem token), ignorando os que só furam o cache
 export function cacheKeyFor(endpoint: string) {
@@ -44,7 +53,7 @@ function loadIndex(): CacheIndex {
   for (const key of Object.keys(index)) {
     if (!(now - index[key] <= MAX_AGE_MS)) {
       delete index[key];
-      storageRemove(PREFIX + key);
+      removeEntry(key);
       changed = true;
     }
   }
@@ -58,22 +67,29 @@ export function readCached<T = unknown>(endpoint: string): CachedResponse<T> | n
   return cached;
 }
 
+// Etiqueta da cópia guardada (só existe se a cópia existe)
+export function getCachedEtag(endpoint: string): string | null {
+  const key = cacheKeyFor(endpoint);
+  if (!etags.has(key)) etags.set(key, readCached(endpoint)?.etag || null);
+  return etags.get(key) ?? null;
+}
+
 // Apaga as mais antigas até sobrar `keep` entradas
 function evictOldest(index: CacheIndex, keep: number) {
   const keys = Object.keys(index).sort((a, b) => index[a] - index[b]);
   while (keys.length > keep) {
     const oldest = keys.shift()!;
     delete index[oldest];
-    storageRemove(PREFIX + oldest);
+    removeEntry(oldest);
   }
 }
 
-export function saveCached(endpoint: string, data: unknown) {
+export function saveCached(endpoint: string, data: unknown, etag?: string | null) {
   const key = cacheKeyFor(endpoint);
   const savedAt = Date.now();
   let json: string;
   try {
-    json = JSON.stringify({ data, savedAt });
+    json = JSON.stringify(etag ? { data, savedAt, etag } : { data, savedAt });
   } catch {
     return;
   }
@@ -86,7 +102,7 @@ export function saveCached(endpoint: string, data: unknown) {
     for (const k of Object.keys(index)) {
       if (k !== key && k.startsWith(latestOnly)) {
         delete index[k];
-        storageRemove(PREFIX + k);
+        removeEntry(k);
       }
     }
   }
@@ -101,7 +117,11 @@ export function saveCached(endpoint: string, data: unknown) {
     index[key] = savedAt;
     saved = storageSet(PREFIX + key, json);
   }
-  if (!saved) delete index[key];
+  if (saved) etags.set(key, etag || null);
+  else {
+    delete index[key];
+    etags.delete(key);
+  }
   storageSet(INDEX_KEY, JSON.stringify(index));
 }
 
@@ -110,4 +130,5 @@ export function clearApiCache() {
     if (key.startsWith(PREFIX)) storageRemove(key);
   }
   storageRemove(INDEX_KEY);
+  etags.clear();
 }

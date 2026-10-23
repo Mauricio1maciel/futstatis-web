@@ -264,3 +264,28 @@ export function asArray<T>(data: unknown): T[] {
   const inner = (data as { data?: unknown } | null)?.data;
   return Array.isArray(inner) ? (inner as T[]) : [];
 }
+
+// /standings/chances: simulação do resto do campeonato. Percentuais com 1 casa decimal
+export type ChancesTeam = {
+  team_id: number;
+  team_name: string;
+  crest_url?: string;
+  position: number;
+  points: number;
+  played: number;
+  expected_points: number;
+  title: number;
+  /** zona (mesmo valor de zone da /standings) -> % */
+  zones: Record<string, number>;
+  /** % de terminar em cada posição: [1º, 2º, ...] */
+  positions: number[];
+};
+
+export type StandingsChances = {
+  league: string;
+  season: string;
+  simulations: number;
+  remaining_matches: number;
+  zones: string[];
+  teams: ChancesTeam[];
+};

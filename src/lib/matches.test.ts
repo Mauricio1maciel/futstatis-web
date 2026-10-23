@@ -3,6 +3,7 @@ import {
   formatGroupName,
   getAggregateScore,
   getEspnMatchId,
+  shortTeamName,
   getLegLabel,
   getPhaseLabel,
   getResultForTeam,
@@ -175,5 +176,16 @@ describe('outras regras', () => {
     expect(getResultForTeam({ ...m, away_score: 2 }, '2')).toBe('E');
     expect(getResultForTeam({ ...m, status: 'TIMED' }, 1)).toBeNull();
     expect(getResultForTeam(m, 99)).toBeNull();
+  });
+});
+
+describe('nome curto do time', () => {
+  it('tira as siglas do clube', () => {
+    expect(shortTeamName('CR Flamengo')).toBe('Flamengo');
+    expect(shortTeamName('São Paulo FC')).toBe('São Paulo');
+    expect(shortTeamName('RB Bragantino')).toBe('Bragantino');
+    expect(shortTeamName('Grêmio FBPA')).toBe('Grêmio');
+    expect(shortTeamName('Clube do Remo')).toBe('Clube do Remo');
+    expect(shortTeamName('PSV')).toBe('PSV');
   });
 });

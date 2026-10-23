@@ -1,33 +1,12 @@
 'use client';
 
 import { Bell, BellRing, Star } from 'lucide-react';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { useFollows } from '@/hooks/useFollows';
 import { usePushSupport } from '@/hooks/usePushSupport';
-import {
-  getFollows,
-  getKinds,
-  isFollowing,
-  KIND_LABELS,
-  loadFollows,
-  saveKinds,
-  subscribeFollows,
-  toggleFollow,
-  type FollowTarget,
-} from '@/lib/follows';
+import { getKinds, isFollowing, KIND_LABELS, saveKinds, toggleFollow, type FollowTarget } from '@/lib/follows';
 
-let loadedOnce = false;
-
-function useFollows() {
-  const state = useSyncExternalStore(subscribeFollows, getFollows, getFollows);
-  useEffect(() => {
-    if (!loadedOnce) {
-      loadedOnce = true;
-      loadFollows();
-    }
-  }, []);
-  return state;
-}
 
 type Props = { target: FollowTarget; size?: number; className?: string; name?: string };
 

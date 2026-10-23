@@ -5,6 +5,8 @@ import {
   getTableLabel,
   getZoneColor,
   hasLast32,
+  hasChances,
+  getZoneLabel,
   hasStandingsTable,
   isCupLeague,
   isTableStage,
@@ -78,10 +80,27 @@ describe('cadastro de ligas', () => {
   });
 
   it('escolhe a legenda certa', () => {
-    expect(getStandingsLegend('BSB').map(i => i.label)).toEqual(['Acesso à Série A', 'Rebaixamento']);
+    expect(getStandingsLegend('BSB').map(i => i.label)).toEqual(['Acesso à Série A', 'Playoff de acesso', 'Rebaixamento']);
     expect(getStandingsLegend('BSA')[0].label).toBe('Libertadores');
     expect(getStandingsLegend('PL')[0].label).toBe('Champions League');
     expect(getStandingsLegend('CLI').map(i => i.label)).toEqual(['Oitavas', 'Sul-Americana', 'Eliminado']);
     expect(getStandingsLegend('WC').map(i => i.label)).toEqual(['Classificado', 'Melhor 3º', 'Eliminado']);
+  });
+
+  it('chances só em pontos corridos e na fase de liga da Champions', () => {
+    expect(['BSA', 'BSB', 'PL', 'CL'].every(hasChances)).toBe(true);
+    expect(['WC', 'UNL', 'CLI', 'CSU', 'CDB'].some(hasChances)).toBe(false);
+    expect(hasChances('XYZ')).toBe(true); // liga fora do cadastro = pontos corridos
+  });
+
+  it('nome da zona igual ao da legenda da tabela', () => {
+    expect(getZoneLabel('BSA', 'libertadores')).toBe('Libertadores');
+    expect(getZoneLabel('BSA', 'pre_libertadores')).toBe('Pré-Libertadores');
+    expect(getZoneLabel('BSA', 'sul_americana')).toBe('Sul-Americana');
+    expect(getZoneLabel('BSB', 'playoff')).toBe('Playoff de acesso');
+    expect(getZoneLabel('PL', 'europa_league')).toBe('Europa League');
+    expect(getZoneLabel('PD', 'conference_league')).toBe('Conference League');
+    expect(getZoneLabel('CL', 'Playoffs (pré-oitavas)')).toBe('Playoffs');
+    expect(getZoneLabel('CL', 'Classificado - Oitavas')).toBe('Oitavas');
   });
 });

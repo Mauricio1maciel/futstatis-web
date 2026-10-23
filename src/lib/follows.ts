@@ -20,7 +20,7 @@ export type PushKind = (typeof PUSH_KINDS)[number];
 export const KIND_LABELS: Record<string, string> = {
   lineup: 'Escalação',
   start: 'Início',
-  goal: 'Gols',
+  goal: 'Gols e gols anulados',
   red_card: 'Cartão vermelho',
   end: 'Fim de jogo',
 };
@@ -33,9 +33,18 @@ export type Follows = {
   leagues: string[];
   kinds: { matches: KindsByTarget; teams: KindsByTarget; leagues: KindsByTarget };
   availableKinds: string[];
+  /** Já sabe o que a pessoa segue? (notificações desligadas = não segue nada) */
+  loaded: boolean;
 };
 
-const EMPTY: Follows = { matches: [], teams: [], leagues: [], kinds: { matches: {}, teams: {}, leagues: {} }, availableKinds: [...PUSH_KINDS] };
+const EMPTY: Follows = {
+  matches: [],
+  teams: [],
+  leagues: [],
+  kinds: { matches: {}, teams: {}, leagues: {} },
+  availableKinds: [...PUSH_KINDS],
+  loaded: false,
+};
 
 let follows: Follows = EMPTY;
 const listeners = new Set<() => void>();
@@ -60,6 +69,7 @@ function normalize(data: Record<string, unknown>): Follows {
     leagues: strings(data.leagues).map(code => code.toUpperCase()),
     kinds: { matches: kinds.matches || {}, teams: kinds.teams || {}, leagues: kinds.leagues || {} },
     availableKinds: strings(data.available_kinds).length ? strings(data.available_kinds) : [...PUSH_KINDS],
+    loaded: true,
   };
 }
 
@@ -100,13 +110,34 @@ export function getKinds(state: Follows, target: FollowTarget): string[] | null 
   return place ? state.kinds[place.list][place.id] ?? null : null;
 }
 
+const markLoaded = () => {
+  if (follows.loaded) return;
+  follows = { ...follows, loaded: true };
+  emit();
+};
+
 export async function loadFollows() {
-  if (!isWebPushEnabled()) return;
+  if (!isWebPushEnabled()) return markLoaded();
   const result = await requestApi<Record<string, unknown>>('/push/subscriptions', {}, { guestOnly: true });
   if (result?.status === 200 && result.data) {
     follows = normalize(result.data);
     emit();
+  } else {
+    markLoaded();
   }
+}
+
+// Mesma lista de IDs em qualquer ordem -> mesmo endereço (reaproveita o cache do servidor e a etiqueta)
+const sortedIds = (ids: string[]) => [...ids].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b)).join(',');
+
+/** /matches/following com o que a pessoa segue; null se não segue nada (a rota daria 400) */
+export function followingEndpoint(state: Follows) {
+  if (!state.teams.length && !state.leagues.length && !state.matches.length) return null;
+  return buildEndpoint('/matches/following', {
+    teams: sortedIds(state.teams),
+    leagues: [...state.leagues].sort().join(','),
+    matches: sortedIds(state.matches),
+  });
 }
 
 // Registro do navegador (Web Push). Pede permissão: só chamar depois de um toque do usuário
@@ -184,6 +215,6 @@ export async function saveKinds(target: FollowTarget, kinds: string[]) {
 }
 
 export function clearFollows() {
-  follows = EMPTY;
+  follows = { ...EMPTY, loaded: true };
   emit();
 }

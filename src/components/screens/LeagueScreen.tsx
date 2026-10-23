@@ -11,7 +11,7 @@ import { LeagueDateMatches } from '@/components/league/LeagueDateMatches';
 import { LeaguePhasesMatches } from '@/components/league/LeaguePhasesMatches';
 import { LeagueRoundsMatches } from '@/components/league/LeagueRoundsMatches';
 import { LeagueStatsPanel } from '@/components/league/LeagueStatsPanel';
-import { StandingsSection } from '@/components/standings/StandingsSection';
+import { LeagueStandings } from '@/components/standings/LeagueStandings';
 import { BottomSheet, SheetOption } from '@/components/ui/BottomSheet';
 import { Crest } from '@/components/ui/Crest';
 import { LazyPanel } from '@/components/ui/LazyPanel';
@@ -141,6 +141,7 @@ function LeagueScreen({ code }: { code: string }) {
         <LazyPanel key={`tabela-${seasonParam}`} active={tab === 'tabela'}>
           {isCup ? (
             <CupPanel
+              withChances
               league={code}
               season={seasonParam}
               isCurrentSeason={isCurrentSeason}
@@ -149,12 +150,13 @@ function LeagueScreen({ code }: { code: string }) {
               refreshSignal={signals.tabela}
             />
           ) : (
-            <StandingsSection
+            <LeagueStandings
               league={code}
               season={seasonParam}
               isCurrentSeason={isCurrentSeason}
               active={tab === 'tabela'}
               refreshSignal={signals.tabela}
+              memory={memory}
             />
           )}
         </LazyPanel>

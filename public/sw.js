@@ -1,6 +1,6 @@
 // Service worker só para as notificações (Web Push). Não guarda páginas em cache.
 // Os endereços são relativos ao escopo: funciona na raiz (Vercel) e numa subpasta (GitHub Pages).
-const BASE = new URL(self.registration.scope).pathname; // ex: "/" ou "/futstatis-web/"
+const BASE = new URL(self.registration.scope).pathname; // ex: "/" ou "/futstats-web/"
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
@@ -25,10 +25,12 @@ self.addEventListener('push', event => {
   );
 });
 
-// Mesmos campos do app: com espn_match_id abre o jogo; só com a liga, abre a liga; teste não abre nada
+// Mesmos campos do app: com espn_match_id abre o jogo (gol anulado também); só com a liga, abre a liga;
+// alerta de admin (ex: alert = "stuck_matches") abre a tela de admin; teste não abre nada
 function urlFor(d) {
   const q = v => encodeURIComponent(v || '');
   if (d.type === 'test') return null;
+  if (d.type === 'admin_alert') return `${BASE}admin/`;
   if (d.espn_match_id) {
     return `${BASE}jogo/?id=${q(d.espn_match_id)}&league=${q(d.league)}&date=${q(d.date)}&espn_home=${q(d.espn_home)}&espn_away=${q(d.espn_away)}&match_id=${q(d.match_id)}`;
   }

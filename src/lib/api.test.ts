@@ -219,3 +219,72 @@ describe('limite de pedidos (429)', () => {
     expect(calls).toHaveLength(2);
   });
 });
+
+describe('etiqueta (ETag) e 304', () => {
+  const withEtag = (body: unknown, etag: string) =>
+    new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json', ETag: etag } });
+
+  it('manda If-None-Match com a etiqueta guardada e usa a cópia no 304', async () => {
+    localStorage.setItem('jwt_token', 'guest-1');
+    const sent: (string | null)[] = [];
+    let round = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit = {}) => {
+        sent.push(new Headers(init.headers).get('If-None-Match'));
+        round++;
+        return round === 1 ? withEtag(['2026', '2025'], 'W/"abc"') : new Response(null, { status: 304, headers: { ETag: 'W/"abc"' } });
+      }),
+    );
+    expect(await fetchApi('/seasons?league=ETAG')).toEqual(['2026', '2025']);
+    const before = readCached('/seasons?league=ETAG')!.savedAt;
+    expect(readCached('/seasons?league=ETAG')?.etag).toBe('W/"abc"');
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(before + 60_000);
+    const second = await requestApi('/seasons?league=ETAG');
+    expect(second).toEqual({ status: 200, data: ['2026', '2025'] });
+    expect(sent).toEqual([null, 'W/"abc"']);
+    // 304 não grava null: a cópia continua, com o savedAt renovado
+    expect(readCached('/seasons?league=ETAG')).toMatchObject({ data: ['2026', '2025'], savedAt: before + 60_000 });
+  });
+
+  it('304 sem cópia guardada: pede de novo sem a etiqueta', async () => {
+    localStorage.setItem('jwt_token', 'guest-1');
+    saveCached('/seasons?league=GONE', ['2026'], 'W/"old"');
+    const sent: (string | null)[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit = {}) => {
+        const tag = new Headers(init.headers).get('If-None-Match');
+        sent.push(tag);
+        // A cópia some entre o envio e a resposta (ex: outra aba limpou o armazenamento)
+        if (tag) {
+          localStorage.clear();
+          localStorage.setItem('jwt_token', 'guest-1');
+          return new Response(null, { status: 304 });
+        }
+        return withEtag(['2026', '2025'], 'W/"new"');
+      }),
+    );
+    expect(await fetchApi('/seasons?league=GONE')).toEqual(['2026', '2025']);
+    expect(sent).toEqual(['W/"old"', null]);
+  });
+
+  it('admin não manda etiqueta', async () => {
+    localStorage.setItem('jwt_token', 'guest-1');
+    localStorage.setItem('admin_jwt_token', 'admin-1');
+    saveCached('/seasons?league=ADM', ['2026'], 'W/"x"');
+    const sent: (string | null)[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit = {}) => {
+        sent.push(new Headers(init.headers).get('If-None-Match'));
+        return json(['2026']);
+      }),
+    );
+    await fetchApi('/seasons?league=ADM');
+    expect(getAdminToken()).toBe('admin-1');
+    expect(sent).toEqual([null]);
+  });
+});

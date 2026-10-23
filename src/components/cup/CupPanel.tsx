@@ -1,6 +1,8 @@
 'use client';
 
-import { getTableLabel, hasLast32, hasStandingsTable } from '@/config/leagues';
+import { useCallback, useState } from 'react';
+import { getTableLabel, hasChances, hasLast32, hasStandingsTable } from '@/config/leagues';
+import { ChancesPanel } from '@/components/standings/ChancesPanel';
 import { StandingsSection } from '@/components/standings/StandingsSection';
 import { LazyPanel } from '@/components/ui/LazyPanel';
 import { Pills, type PillOption } from '@/components/ui/Pills';
@@ -9,7 +11,7 @@ import type { TeamRef } from '@/lib/standings';
 import { KnockoutBracket } from './KnockoutBracket';
 import { RoundMatchesList } from './RoundMatchesList';
 
-type CupView = 'table' | 'last32' | 'tree';
+type CupView = 'table' | 'chances' | 'last32' | 'tree';
 
 type Props = {
   league: string;
@@ -20,18 +22,36 @@ type Props = {
   active?: boolean;
   refreshSignal?: number;
   memory: ScreenMemory;
+  /** Mostra a opção Chances (fase de liga da Champions). Só na tela da liga */
+  withChances?: boolean;
 };
 
 // Copa: pílulas Grupos/Fase de Liga (se tiver classificação), 16 avos (se tiver) e Mata-Mata.
 // Copa sem classificação (Copa do Brasil) abre direto no chaveamento
-export function CupPanel({ league, season = '', isCurrentSeason = true, highlight, focusHighlighted, active = true, refreshSignal = 0, memory }: Props) {
+export function CupPanel({
+  league,
+  season = '',
+  isCurrentSeason = true,
+  highlight,
+  focusHighlighted,
+  active = true,
+  refreshSignal = 0,
+  memory,
+  withChances = false,
+}: Props) {
   const withTable = hasStandingsTable(league);
+  // A API respondeu 404 nas chances: a opção some
+  const [chancesOff, setChancesOff] = useState(false);
+  const showChances = withChances && hasChances(league) && !chancesOff;
   const options: PillOption<CupView>[] = [
     ...(withTable ? [{ value: 'table' as const, label: getTableLabel(league) }] : []),
+    ...(showChances ? [{ value: 'chances' as const, label: 'Chances' }] : []),
     ...(hasLast32(league) ? [{ value: 'last32' as const, label: '16 avos de final' }] : []),
     { value: 'tree', label: 'Mata-Mata' },
   ];
-  const [view, setView] = useRememberedState<CupView>(memory, `cup-view:${league}:${season}`, withTable ? 'table' : 'tree');
+  const [savedView, setView] = useRememberedState<CupView>(memory, `cup-view:${league}:${season}`, withTable ? 'table' : 'tree');
+  const view = savedView === 'chances' && !showChances ? (withTable ? 'table' : 'tree') : savedView;
+  const onChancesUnavailable = useCallback(() => setChancesOff(true), []);
 
   return (
     <div>
@@ -48,6 +68,11 @@ export function CupPanel({ league, season = '', isCurrentSeason = true, highligh
               active={active && view === 'table'}
               refreshSignal={refreshSignal}
             />
+          </LazyPanel>
+        )}
+        {showChances && (
+          <LazyPanel active={view === 'chances'}>
+            <ChancesPanel league={league} season={season} refreshSignal={refreshSignal} onUnavailable={onChancesUnavailable} />
           </LazyPanel>
         )}
         <LazyPanel active={view === 'last32'}>

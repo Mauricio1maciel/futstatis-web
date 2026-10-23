@@ -12,6 +12,14 @@ export function getEspnMatchId(m: Match | null | undefined): string {
 // Confronto ainda indefinido vem com ID 0 e nome vazio
 export const teamDisplayName = (name: unknown): string => String(name ?? '').trim() || 'A definir';
 
+// Sem as siglas do clube no começo/fim, para caber em colunas estreitas:
+// "CR Flamengo" -> "Flamengo", "São Paulo FC" -> "São Paulo", "RB Bragantino" -> "Bragantino"
+export function shortTeamName(name: unknown): string {
+  const full = teamDisplayName(name);
+  const short = full.replace(/^(?:[A-Z]{2,4}\.?\s+)+/, '').replace(/(?:\s+[A-Z]{2,4}\.?)+$/, '').trim();
+  return short || full;
+}
+
 const LIVE_STATUSES = new Set(['in', 'IN_PLAY', 'PAUSED', 'LIVE']);
 const FINISHED_STATUSES = new Set(['FINISHED', 'post', 'AWARDED']);
 

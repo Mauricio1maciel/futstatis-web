@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchApi, withParams, type QueryParams } from '@/lib/api';
+import { requestApi, withParams, type QueryParams } from '@/lib/api';
 
 export type ApiState<T> = {
   data: T | null;
@@ -9,6 +9,8 @@ export type ApiState<T> = {
   refreshing: boolean;
   /** Falhou e não há nada para mostrar */
   error: boolean;
+  /** Status HTTP da última resposta (null = sem resposta: rede/tempo esgotado). Ex: 404 = rota sem dados */
+  status?: number | null;
 };
 
 type Options<T> = {
@@ -37,7 +39,7 @@ export function useApi<T>(endpoint: string | null, { enabled = true, cache = tru
       if (refresh) setState(s => ({ ...s, refreshing: true }));
       else setState({ data: null, loading: true, refreshing: false, error: false });
 
-      const raw = await fetchApi<unknown>(url, {}, {
+      const result = await requestApi<unknown>(url, {}, {
         onCached:
           !refresh && cache
             ? cached => {
@@ -46,10 +48,12 @@ export function useApi<T>(endpoint: string | null, { enabled = true, cache = tru
             : undefined,
       });
       if (id !== requestId.current) return;
+      const status = result?.status ?? null;
+      const raw = result && result.status < 400 ? result.data : null;
       setState(s =>
         raw != null
-          ? { data: toData(raw), loading: false, refreshing: false, error: false }
-          : { ...s, loading: false, refreshing: false, error: s.data == null },
+          ? { data: toData(raw), loading: false, refreshing: false, error: false, status }
+          : { ...s, loading: false, refreshing: false, error: s.data == null, status },
       );
     },
     [cache],

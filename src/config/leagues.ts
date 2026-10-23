@@ -100,6 +100,7 @@ export const LEAGUES: LeagueConfig[] = [
     icon: '🇧🇷',
     leagueLegend: [
       { color: ZONE_COLORS.promotion, label: 'Acesso à Série A' },
+      { color: ZONE_COLORS.playoff, label: 'Playoff de acesso' },
       { color: ZONE_COLORS.eliminated, label: 'Rebaixamento' },
     ],
   },
@@ -226,6 +227,20 @@ export const getStandingsLegend = (code: unknown) =>
 export const hasLast32 = (code: unknown) => getLeague(code)?.hasLast32 !== false;
 
 export const hasStandingsTable = (code: unknown) => getLeague(code)?.hasStandings !== false;
+
+// Chances (/standings/chances): só tabela de pontos corridos. Nas copas, só a fase de liga (Champions);
+// grupos (Copa do Mundo, Libertadores) e Liga das Nações dão 404
+export const hasChances = (code: unknown) =>
+  hasStandingsTable(code) && (!isCupLeague(code) || !!getLeague(code)?.phases?.some(p => p.key === 'LEAGUE_STAGE'));
+
+// Nome de uma zona (valor de zone da /standings) igual ao da legenda da tabela, pela cor
+export function getZoneLabel(code: unknown, zone: string) {
+  const color = getZoneColor(zone);
+  const item = getStandingsLegend(code).find(i => i.color === color);
+  if (item) return item.label;
+  const text = zone.replace(/_/g, ' ').trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 export const getBracketRounds = (code: unknown): Record<BracketSlot, string> => ({
   LAST_16: 'LAST_16',

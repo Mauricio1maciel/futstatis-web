@@ -1,4 +1,4 @@
-import { isCacheableEndpoint, readCached, saveCached } from './apiCache';
+import { getCachedEtag, isCacheableEndpoint, readCached, saveCached } from './apiCache';
 import { authenticateGuest, getAdminToken, getGuestToken, logoutAdmin } from './auth';
 import { getBaseUrl } from './config';
 import { describeNetworkError, fetchWithTimeout, parseBody } from './http';
@@ -65,8 +65,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 
-// Faz o pedido uma vez (com renovação de token no 401). Lança erro em falha de rede/tempo esgotado
-async function sendRequest(endpoint: string, options: RequestInit, guestOnly: boolean) {
+// Faz o pedido uma vez (com renovação de token no 401). Lança erro em falha de rede/tempo esgotado.
+// etag: a da cópia guardada; vai em If-None-Match e a API responde 304 sem corpo se nada mudou
+async function sendRequest(endpoint: string, options: RequestInit, guestOnly: boolean, etag: string | null = null) {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${endpoint}`;
 
@@ -76,6 +77,8 @@ async function sendRequest(endpoint: string, options: RequestInit, guestOnly: bo
 
   const headers = new Headers(options.headers);
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  // Admin não guarda cópia (recebe sempre dado fresco): sem etiqueta
+  if (etag && !adminToken) headers.set('If-None-Match', etag);
   const send = async () => {
     if (token) headers.set('Authorization', `Bearer ${token}`);
     return fetchWithTimeout(url, { ...options, headers });
@@ -90,6 +93,7 @@ async function sendRequest(endpoint: string, options: RequestInit, guestOnly: bo
       // Token de admin expirou: volta para convidado e avisa
       logoutAdmin();
       usedAdminToken = false;
+      headers.delete('If-None-Match');
       showToast('Sessão de admin expirada', 'Faça login de novo para usar o modo admin.');
       token = getGuestToken() || (await authenticateGuest(baseUrl));
     } else {
@@ -112,6 +116,7 @@ async function sendRequest(endpoint: string, options: RequestInit, guestOnly: bo
     status: response.status,
     data: await parseBody(response),
     usedAdminToken,
+    etag: response.headers.get('ETag'),
     retryAfter: response.status === 429 ? retryAfterSeconds(response.headers.get('Retry-After')) : 0,
   };
 }
@@ -152,13 +157,25 @@ export async function requestApi<T = unknown>(
   }
 
   try {
+    const etag = cacheable ? getCachedEtag(endpoint) : null;
     let result;
     try {
-      result = await sendRequest(endpoint, options, guestOnly);
+      result = await sendRequest(endpoint, options, guestOnly, etag);
     } catch (error) {
       // POST/DELETE não repetem sozinhos; sem internet nenhuma, não adianta esperar
       if (!isGet || isOffline()) throw error;
       await sleep(RETRY_DELAY_MS);
+      result = await sendRequest(endpoint, options, guestOnly, etag);
+    }
+
+    // 304: nada mudou desde a cópia guardada. Ela vale como resposta e só ganha um savedAt novo.
+    // Sem a cópia (apagada nesse meio-tempo), pede de novo sem a etiqueta
+    if (result.status === 304) {
+      const cached = readCached<T>(endpoint);
+      if (cached) {
+        saveCached(endpoint, cached.data, result.etag || cached.etag);
+        return { status: 200, data: cached.data };
+      }
       result = await sendRequest(endpoint, options, guestOnly);
     }
 
@@ -177,7 +194,7 @@ export async function requestApi<T = unknown>(
 
     // Guarda só respostas OK de convidado (admin sempre recebe dado fresco: X-Cache BYPASS)
     if (cacheable && result.status < 400 && result.data != null && !result.usedAdminToken) {
-      saveCached(endpoint, result.data);
+      saveCached(endpoint, result.data, result.etag);
     }
 
     return { status: result.status, data: result.data as T };
