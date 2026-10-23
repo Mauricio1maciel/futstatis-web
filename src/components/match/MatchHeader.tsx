@@ -5,10 +5,12 @@ import type { ReactNode } from 'react';
 import { Crest } from '@/components/ui/Crest';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatShortDate, formatTime, getMatchDate } from '@/lib/dates';
+import type { LiveClockData } from '@/lib/liveClock';
 import { getSpecialStatusLabel, isFinishedMatch, isLiveMatch, teamDisplayName } from '@/lib/matches';
 import { setPreview } from '@/lib/preview';
 import { teamHref } from '@/lib/routes';
 import type { Match } from '@/lib/types';
+import { LiveClock } from './LiveClock';
 import { Score } from './Score';
 
 function TeamColumn({ name, logo, teamId }: { name?: string; logo?: string; teamId?: unknown }) {
@@ -32,7 +34,7 @@ function TeamColumn({ name, logo, teamId }: { name?: string; logo?: string; team
 }
 
 // Placar do topo: escudos e nomes (tocar abre o time), status com o minuto e o placar com pênaltis
-export function MatchHeader({ match, clock }: { match: Match | null; clock: string }) {
+export function MatchHeader({ match, clock }: { match: Match | null; clock: LiveClockData }) {
   if (!match) {
     return (
       <div className="flex items-center bg-card px-2.5 py-5" aria-hidden>
@@ -63,7 +65,7 @@ export function MatchHeader({ match, clock }: { match: Match | null; clock: stri
     center = (
       <>
         <span className={`text-[11px] font-bold ${live ? 'text-live' : 'text-muted'}`}>{live ? 'Ao Vivo' : 'Encerrado'}</span>
-        {live && clock && <span className="text-[13px] font-bold text-live">{clock}</span>}
+        {live && <LiveClock match={clock} className="text-[13px] font-bold text-live" />}
         <Score match={match} className="mt-0.5 text-[32px] leading-none text-white" penaltyClassName="text-lg" />
       </>
     );

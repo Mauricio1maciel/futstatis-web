@@ -37,8 +37,16 @@ export type Match = {
   state?: string;
   /** HOME_TEAM, AWAY_TEAM, DRAW ou vazio */
   winner?: string;
-  /** Minuto do jogo (/matches/live) */
+  /** Minuto do jogo (/matches/live), o texto da ESPN: "35'" */
   clock?: string;
+  /** /matches/live: segundos de jogo quando a ESPN foi lida (2100 = 35 min) */
+  clock_seconds?: number;
+  /** /matches/live: quando a ESPN foi lida, em UTC ("2026-10-23T23:06:56Z"). Sem ele, vale só o clock */
+  clock_at?: string;
+  /** /matches/live: false no intervalo, nos pênaltis e com o jogo parado */
+  clock_running?: boolean;
+  /** /matches/live: 1 e 2 = tempos; 3 e 4 = prorrogação; 5 = pênaltis */
+  period?: number;
   /** Confronto encerrado empatado e sem decisão conhecida (calculado no app) */
   tie_undecided?: boolean;
   /** Fase do cadastro de onde o jogo veio (calculado na tela da liga) */

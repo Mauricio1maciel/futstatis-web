@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Crest } from '@/components/ui/Crest';
+import { LiveClock } from './LiveClock';
 import { formatShortDate, formatTime, getMatchDate } from '@/lib/dates';
 import { getGroupBadge, getSpecialStatusLabel, isFinishedMatch, isLiveMatch, teamDisplayName } from '@/lib/matches';
 import { setMatchPreview } from '@/lib/preview';
@@ -64,7 +65,7 @@ export function MatchRow({ match, href, variant = 'card', showDate = false, head
       <>
         <Score match={match} live={live} className="text-lg" />
         <span className={`mt-1 text-[10px] ${live ? 'font-bold text-live' : 'text-muted'}`}>
-          {live ? match.clock || 'Ao vivo' : 'Encerrado'}
+          {live ? <LiveClock match={match} fallback="Ao vivo" /> : 'Encerrado'}
         </span>
       </>
     ) : (

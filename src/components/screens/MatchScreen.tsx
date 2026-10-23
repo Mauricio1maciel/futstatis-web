@@ -26,7 +26,8 @@ import { useRememberedState, useScreenMemory } from '@/hooks/useScreenMemory';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { buildEndpoint, fetchApi, refreshParams, withParams } from '@/lib/api';
 import { parseMatchDate, toDateKey } from '@/lib/dates';
-import { getEspnMatchId, getPhaseLabel, isFinishedMatch, isLiveMatch } from '@/lib/matches';
+import { pickClock, type LiveClockData } from '@/lib/liveClock';
+import { getEspnMatchId, getPhaseLabel, hasPenalties, isFinishedMatch, isLiveMatch } from '@/lib/matches';
 import { getPreview } from '@/lib/preview';
 import { asArray, type Match, type MatchHistory } from '@/lib/types';
 
@@ -43,10 +44,11 @@ type RouteParams = {
   apiHome: string;
   apiAway: string;
   dbMatchId: string;
-  clock: string;
+  clock: LiveClockData;
 };
 
 // /jogo/?id=<ID da ESPN ou match_id>&league=&date=&espn_home=&espn_away=&match_id=&clock=
+// (+ clock_seconds, clock_at, clock_running e period: o relógio que anda sozinho)
 export function MatchRoute() {
   const query = useSearchParams();
   const get = (key: string) => query.get(key) || '';
@@ -59,7 +61,13 @@ export function MatchRoute() {
     apiHome: get('api_home'),
     apiAway: get('api_away'),
     dbMatchId: get('match_id'),
-    clock: get('clock'),
+    clock: {
+      clock: get('clock'),
+      clock_seconds: get('clock_seconds') ? Number(get('clock_seconds')) : undefined,
+      clock_at: get('clock_at') || undefined,
+      clock_running: get('clock_running') === '1',
+      period: get('period') ? Number(get('period')) : undefined,
+    },
   };
   if (!params.id) return <NotFoundState />;
   return <MatchScreen key={`${params.id}-${params.league}`} {...params} />;
@@ -111,7 +119,7 @@ function MatchScreen(params: RouteParams) {
   const [refreshing, setRefreshing] = useState(false);
   // Placar/minuto/status do /matches/live (o history não traz o minuto)
   const [liveInfo, setLiveInfo] = useState<Partial<Match> | null>(null);
-  const [clock, setClock] = useState(() => (params.clock || preview?.clock || '').replace(/^pre$/, ''));
+  const [clock, setClock] = useState<LiveClockData>(() => (params.clock.clock ? params.clock : pickClock(preview)));
   const [tab, setTab] = useRememberedState<Tab>(memory, 'aba', 'detalhes');
   const [side, setSide] = useRememberedState<'home' | 'away'>(memory, 'time', 'home');
   const [standingsSignal, setStandingsSignal] = useState(0);
@@ -192,9 +200,15 @@ function MatchScreen(params: RouteParams) {
     const list = asArray<Match>(await fetchApi(buildEndpoint('/matches/live', { league })));
     const found = list.find(m => String(m.match_id) === id || getEspnMatchId(m) === id);
     if (!found) return;
-    setLiveInfo({ home_score: found.home_score, away_score: found.away_score, status: found.state || found.status });
+    setLiveInfo({
+      home_score: found.home_score,
+      away_score: found.away_score,
+      status: found.state || found.status,
+      // Disputa de pênaltis: o parcial vem durante a disputa
+      ...(hasPenalties(found) ? { home_penalty: found.home_penalty, away_penalty: found.away_penalty } : {}),
+    });
     // Minuto vazio na resposta não apaga o que está na tela
-    if (found.clock && found.clock !== 'pre') setClock(found.clock);
+    if (found.clock && found.clock !== 'pre') setClock(pickClock(found));
   }, [league, id]);
 
   // Logo ao abrir (o minuto aparece na hora) e depois a cada 30 s, em paralelo com o history
